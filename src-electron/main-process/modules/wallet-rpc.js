@@ -156,10 +156,10 @@ console.log(this.auth[0], ' ', this.auth[1], ' <<<<<<<<<<<<<<<<<<<<<<<<')
         })
     }
 
-    handle (data) {
+    async handle (data) {
         let params = data.data
 
-     
+        console.log(`>>>>>>>>>>>>>>>>>>>>>>${data.method}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<`)
 
         switch (data.method) {
         case "validate_address":
@@ -193,8 +193,7 @@ console.log(this.auth[0], ' ', this.auth[1], ' <<<<<<<<<<<<<<<<<<<<<<<<')
             break
 
         case "open_wallet":
-            console.log('>>>>>>>>>>>>>>>>>>>>>>calling this.openWallet<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
-            this.openWallet(params.name, params.password)
+            await this.openWallet(params.name, params.password)
             break
 
         case "close_wallet":
