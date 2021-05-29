@@ -7,7 +7,8 @@ const fs = require("fs")
 const path = require("path")
 const crypto = require("crypto")
 
-const axios = require('axios')
+//const axios = require('axios')
+const DigestFetch = require("digest-fetch")
 
 export class WalletRPC {
     constructor (backend) {
@@ -59,7 +60,7 @@ export class WalletRPC {
                     auth.substr(64, 64), // rpc password
                     auth.substr(128, 32) // password salt
                 ]
-
+console.log(this.auth[0], ' ', this.auth[1], ' <<<<<<<<<<<<<<<<<<<<<<<<')
                 const args = [
                     "--rpc-login", this.auth[0] + ":" + this.auth[1],
                     "--rpc-bind-port", options.wallet.rpc_bind_port,
@@ -158,7 +159,7 @@ export class WalletRPC {
     handle (data) {
         let params = data.data
 
-        console.log(data.method, 'WFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
+     
 
         switch (data.method) {
         case "validate_address":
@@ -192,6 +193,7 @@ export class WalletRPC {
             break
 
         case "open_wallet":
+            console.log('>>>>>>>>>>>>>>>>>>>>>>calling this.openWallet<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
             this.openWallet(params.name, params.password)
             break
 
@@ -518,58 +520,48 @@ export class WalletRPC {
     }
 
     async openWallet (filename, password) {
-        let openWalletResponse = await this.sendRPC1("open_wallet", {filename, password})
-        console.log(openWalletResponse, 'blAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaah')
-        
-        // .then((data) => {
-        //     if (data.hasOwnProperty("error")) {
-        //         this.sendGateway("set_wallet_error", { status: data.error })
-        //         return
-        //     }
+        let openWalletData = await this.sendRPC1("open_wallet", {filename, password})
+        if (openWalletData.hasOwnProperty("error")) {
+            this.sendGateway("set_wallet_error", { status: openWalletData.error })
+            return
+        }
 
         let address_txt_path = path.join(this.wallet_dir, filename + ".address.txt")
         if (!fs.existsSync(address_txt_path)) {
-
             try {
-                let data = await this.sendRPC1("get_address", { account_index: 0 })
-                console.log(data, 'DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD')
-
-                // .then((data) => {
-                // if (data.hasOwnProperty("error") || !data.hasOwnProperty("result")) {
-                //     return
-                // }
-                fs.writeFile(address_txt_path, data.result.address, "utf8", () => {
+                let getAddressData = await this.sendRPC1("get_address", { account_index: 0 })
+                if (getAddressData.hasOwnProperty("error") || !getAddressData.hasOwnProperty("result")) {
+                    return
+                }
+                fs.writeFile(address_txt_path, getAddressData.result.address, "utf8", () => {
                     this.listWallets()
                 })
-            // })
             } catch(error) {
                 return
             }
         }
 
-            // store hash of the password so we can check against it later when requesting private keys, or for sending txs
-            this.wallet_state.password_hash = crypto.pbkdf2Sync(password, this.auth[2], 1000, 64, "sha512").toString("hex")
-            this.wallet_state.name = filename
-            this.wallet_state.open = true
+        // store hash of the password so we can check against it later when requesting private keys, or for sending txs
+        this.wallet_state.password_hash = crypto.pbkdf2Sync(password, this.auth[2], 1000, 64, "sha512").toString("hex")
+        this.wallet_state.name = filename
+        this.wallet_state.open = true
 
-            // this.startHeartbeat()
+        // this.startHeartbeat()
 
-            // Check if we have a view only wallet by querying the spend key
-            let data = await this.sendRPC1("query_key", { key_type: "spend_key" })
-            console.log(data)
-                // .then((data) => {
-                // if (data.hasOwnProperty("error") || !data.hasOwnProperty("result")) {
-                //     return
-                // }
-                if (/^0*$/.test(data.result.key)) {
-                    this.sendGateway("set_wallet_data", {
-                        info: {
-                            view_only: true
-                        }
-                    })
+        // Check if we have a view only wallet by querying the spend key
+        let queryKeyData = await this.sendRPC1("query_key", { key_type: "spend_key" })
+        if (queryKeyData.hasOwnProperty("error") || !queryKeyData.hasOwnProperty("result")) {
+            return
+        }
+        console.log('before test ', queryKeyData.result.key)
+        if (/^0*$/.test(queryKeyData.result.key)) {
+            console.log('after test ', queryKeyData.result.key)
+            this.sendGateway("set_wallet_data", {
+                info: {
+                    view_only: true
                 }
-            // })
-        // })
+            })
+        }
     }
 
     startHeartbeat () {
@@ -1302,43 +1294,33 @@ export class WalletRPC {
 
     async sendRPC1 (method, params = {}, timeout = 0) {
         let id = this.id++
+        let url = `${this.protocol}${this.hostname}:${this.port}/json_rpc`
+        let body = {
+            jsonrpc: "2.0",
+            id: id,
+            method: method,
+        }
         let options = {
-            url: `${this.protocol}${this.hostname}:${this.port}/json_rpc`,
             method: "POST",
-            data: {
-                jsonrpc: "2.0",
-                id: id,
-                method: method,
-            },
-            auth: {
-                user: this.auth[0],
-                pass: this.auth[1],
-                sendImmediately: false
-            }
-            // agent: this.agent
+            agent: this.agent
         }
         if (Object.keys(params).length !== 0) {
-            options.data.params = params
+            body.params = params
         }
-        if (timeout) {
-            options.timeout = timeout
-        }
+        // if (timeout) {
+        //     options.timeout = timeout
+        // }
+
+        options.body = JSON.stringify(body)
 
         try {
-            console.log('OPTIONS>>>>>>>>>>>>>',options, '<<<<<<<<<<<<<<<<<OPTIONS')
-            let response = await axios(options)
-            console.log(response, '<<<<<<<<<<<<<<<<<<')
-            if (response.hasOwnProperty("error")) {
-                return {
-                    method: method,
-                    params: params,
-                    error: response.error
-                }
-            }
+            const client = new DigestFetch(this.auth[0], this.auth[1], {algorithm: 'MD5'})
+            let response = await client.fetch(url, options)
+            let data = await response.json()
             return {
                 method: method,
                 params: params,
-                result: response.data
+                result: data.result
             }
         }catch(error) {
             return {
