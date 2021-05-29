@@ -7,6 +7,8 @@ const fs = require("fs")
 const path = require("path")
 const crypto = require("crypto")
 
+const axios = require('axios')
+
 export class WalletRPC {
     constructor (backend) {
         this.backend = backend
@@ -155,6 +157,8 @@ export class WalletRPC {
 
     handle (data) {
         let params = data.data
+
+        console.log(data.method, 'WFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
 
         switch (data.method) {
         case "validate_address":
@@ -513,40 +517,50 @@ export class WalletRPC {
         })
     }
 
-    openWallet (filename, password) {
-        this.sendRPC("open_wallet", {
-            filename,
-            password
-        }).then((data) => {
-            if (data.hasOwnProperty("error")) {
-                this.sendGateway("set_wallet_error", { status: data.error })
+    async openWallet (filename, password) {
+        let openWalletResponse = await this.sendRPC1("open_wallet", {filename, password})
+        console.log(openWalletResponse, 'blAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaah')
+        
+        // .then((data) => {
+        //     if (data.hasOwnProperty("error")) {
+        //         this.sendGateway("set_wallet_error", { status: data.error })
+        //         return
+        //     }
+
+        let address_txt_path = path.join(this.wallet_dir, filename + ".address.txt")
+        if (!fs.existsSync(address_txt_path)) {
+
+            try {
+                let data = await this.sendRPC1("get_address", { account_index: 0 })
+                console.log(data, 'DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD')
+
+                // .then((data) => {
+                // if (data.hasOwnProperty("error") || !data.hasOwnProperty("result")) {
+                //     return
+                // }
+                fs.writeFile(address_txt_path, data.result.address, "utf8", () => {
+                    this.listWallets()
+                })
+            // })
+            } catch(error) {
                 return
             }
-
-            let address_txt_path = path.join(this.wallet_dir, filename + ".address.txt")
-            if (!fs.existsSync(address_txt_path)) {
-                this.sendRPC("get_address", { account_index: 0 }).then((data) => {
-                    if (data.hasOwnProperty("error") || !data.hasOwnProperty("result")) {
-                        return
-                    }
-                    fs.writeFile(address_txt_path, data.result.address, "utf8", () => {
-                        this.listWallets()
-                    })
-                })
-            }
+        }
 
             // store hash of the password so we can check against it later when requesting private keys, or for sending txs
             this.wallet_state.password_hash = crypto.pbkdf2Sync(password, this.auth[2], 1000, 64, "sha512").toString("hex")
             this.wallet_state.name = filename
             this.wallet_state.open = true
 
-            this.startHeartbeat()
+            // this.startHeartbeat()
 
             // Check if we have a view only wallet by querying the spend key
-            this.sendRPC("query_key", { key_type: "spend_key" }).then((data) => {
-                if (data.hasOwnProperty("error") || !data.hasOwnProperty("result")) {
-                    return
-                }
+            let data = await this.sendRPC1("query_key", { key_type: "spend_key" })
+            console.log(data)
+                // .then((data) => {
+                // if (data.hasOwnProperty("error") || !data.hasOwnProperty("result")) {
+                //     return
+                // }
                 if (/^0*$/.test(data.result.key)) {
                     this.sendGateway("set_wallet_data", {
                         info: {
@@ -554,8 +568,8 @@ export class WalletRPC {
                         }
                     })
                 }
-            })
-        })
+            // })
+        // })
     }
 
     startHeartbeat () {
@@ -1284,6 +1298,59 @@ export class WalletRPC {
         // after another action has started, but before it has finished
         if (!this.wallet_state.open && method === "set_wallet_data") { return }
         this.backend.send(method, data)
+    }
+
+    async sendRPC1 (method, params = {}, timeout = 0) {
+        let id = this.id++
+        let options = {
+            url: `${this.protocol}${this.hostname}:${this.port}/json_rpc`,
+            method: "POST",
+            data: {
+                jsonrpc: "2.0",
+                id: id,
+                method: method,
+            },
+            auth: {
+                user: this.auth[0],
+                pass: this.auth[1],
+                sendImmediately: false
+            }
+            // agent: this.agent
+        }
+        if (Object.keys(params).length !== 0) {
+            options.data.params = params
+        }
+        if (timeout) {
+            options.timeout = timeout
+        }
+
+        try {
+            console.log('OPTIONS>>>>>>>>>>>>>',options, '<<<<<<<<<<<<<<<<<OPTIONS')
+            let response = await axios(options)
+            console.log(response, '<<<<<<<<<<<<<<<<<<')
+            if (response.hasOwnProperty("error")) {
+                return {
+                    method: method,
+                    params: params,
+                    error: response.error
+                }
+            }
+            return {
+                method: method,
+                params: params,
+                result: response.data
+            }
+        }catch(error) {
+            return {
+                method: method,
+                params: params,
+                error: {
+                    code: -1,
+                    message: "Cannot connect to wallet-rpc",
+                    cause: error.cause
+                }
+            }
+        }
     }
 
     sendRPC (method, params = {}, timeout = 0) {
