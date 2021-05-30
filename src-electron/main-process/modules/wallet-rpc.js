@@ -1,13 +1,10 @@
 import child_process from "child_process"
-const request = require("request-promise")
-const queue = require("promise-queue")
 const http = require("http")
 const os = require("os")
 const fs = require("fs")
 const path = require("path")
 const crypto = require("crypto")
 
-//const axios = require('axios')
 const DigestFetch = require("digest-fetch")
 
 export class WalletRPC {
@@ -39,7 +36,6 @@ export class WalletRPC {
         this.height_regex3 = /Skipped block by timestamp, height: (\d+)/
 
         this.agent = new http.Agent({ keepAlive: true, maxSockets: 1 })
-        this.queue = new queue(1, Infinity)
     }
 
     // this function will take an options object for testnet, data-dir, etc
@@ -137,9 +133,7 @@ export class WalletRPC {
 
                 // To let caller know when the wallet is ready
                 let intrvl = setInterval(async() => {
-                    console.log(`>>>>>>>>>>>>>>>>>>>>>>get_languages<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<`)
                     const getLanguagesData = await this.sendRPC("get_languages")
-                    console.log(`>>>>>>>>>>>>>>>>>>>>>>after get_languages<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<${JSON.stringify(getLanguagesData, null, '\t')}`)
                     if (!getLanguagesData.hasOwnProperty("error")) {
                         clearInterval(intrvl)
                         resolve()
