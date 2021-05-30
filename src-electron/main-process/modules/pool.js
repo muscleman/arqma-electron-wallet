@@ -56,7 +56,6 @@ export class Pool {
 
         this.checkHeight().then(response => {
             logger.log("info", "Contacted remote API -- watchdog is active")
-            logger.log("info", response)
         }).catch(() => {
             logger.log("warn", "Could not contact remote API")
         })
