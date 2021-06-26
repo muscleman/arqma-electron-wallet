@@ -967,23 +967,23 @@ try {
                         view_key: ""
                     }
                 }
-            // const mnemonicData = await this.rpc.sendRPC_WithMD5("query_key", { key_type: "mnemonic" })
-            const mnemonicData = await this.rpcWallet.queryKey({ key_type: "mnemonic" })
-            if (!mnemonicData.hasOwnProperty("error") ) {
-                wallet.secret[mnemonicData.params.key_type] = mnemonicData.key
-            }
+            try {
+                const mnemonicData = await this.rpcWallet.queryKey({ key_type: "mnemonic" })
+                wallet.secret.mnemonic = mnemonicData.key
+            } 
+            catch(error) {}
 
-            const queryKeyData = await this.rpcWallet.queryKey({ key_type: "spend_key" })
-            // const queryKeyData = await this.rpc.sendRPC_WithMD5("query_key", { key_type: "spend_key" })
-            if (!queryKeyData.hasOwnProperty("error") ) {
-                wallet.secret[queryKeyData.params.key_type] = queryKeyData.key
-            }
+            try {
+                const queryKeyData = await this.rpcWallet.queryKey({ key_type: "spend_key" })
+                wallet.secret.spend_key = queryKeyData.key
+            } 
+            catch(error) {}
 
-            const spendKeyData = await this.rpcWallet.queryKey({ key_type: "view_key" })
-            // const spendKeyData = await this.rpc.sendRPC_WithMD5("query_key", { key_type: "view_key" })
-            if (!spendKeyData.hasOwnProperty("error") ) {
-                wallet.secret[spendKeyData.params.key_type] = spendKeyData.key
-            }
+            try {
+                const spendKeyData = await this.rpcWallet.queryKey({ key_type: "view_key" })
+                wallet.secret.view_key = spendKeyData.key
+            } 
+            catch(error) {}
             this.sendGateway("set_wallet_data", wallet)
         })
     }
@@ -1241,9 +1241,10 @@ try {
 
             if (filename == null) { filename = path.join(this.data_dir, "gui", "key_image_export") } else { filename = path.join(filename, "key_image_export") }
 
-            const exportKeyImagesData = await this.rpcWallet.exportKeyImages({ filename })
-            // const exportKeyImagesData = await this.rpc.sendRPC_WithMD5("export_key_images", { filename })
-            if (exportKeyImagesData.hasOwnProperty("error") || !exportKeyImagesData.hasOwnProperty("result")) {
+            try {
+                await this.rpcWallet.exportKeyImages({ filename })
+            }
+            catch(error) {
                 this.sendGateway("show_notification", { type: "negative", message: "Error exporting key images", timeout: 2000 })
                 return
             }
@@ -1266,9 +1267,11 @@ try {
 
             if (filename == null) { filename = path.join(this.data_dir, "gui", "key_image_export") }
 
-            const importKeyImagesData = await this.rpcWallet.importKeyImages({ filename })
-            // const importKeyImagesData = await this.rpc.sendRPC_WithMD5("import_key_images", { filename })
-            if (importKeyImagesData.hasOwnProperty("error") || !importKeyImagesData.hasOwnProperty("result")) {
+            try {
+                await this.rpcWallet.importKeyImages({ filename })
+            }
+            catch (error)
+            {
                 this.sendGateway("show_notification", { type: "negative", message: "Error importing key images", timeout: 2000 })
                 return
             }
