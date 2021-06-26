@@ -108,7 +108,9 @@ export class WalletRPC {
                 this.walletRPCProcess.stdout.on("data", (data) => {
                     process.stdout.write(`Wallet: ${data}`)
                     
-                    let lines = data.toString().split("\n")
+                    let stringValue = data.toString()
+                    //console.log('......', stringValue)
+                    let lines = stringValue.split("\n")
                     let match, height = null
                     lines.forEach((line) => {
                         match = line.match(this.height_regex1)
@@ -166,7 +168,7 @@ export class WalletRPC {
     }
 
     async handle (data) {
-        console.log(data.method, '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+        //console.log(data.method, '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
         let params = data.data
 
         switch (data.method) {
@@ -268,7 +270,7 @@ export class WalletRPC {
     }
 
     async createWallet (filename, password, language, type) {
-        console.log('>>>>>>>>>>>>>>>>>createWallet')
+        //console.log('>>>>>>>>>>>>>>>>>createWallet')
         let short_address = type === "kurz"
         const createWalletData = this.rpcWallet.createWallet({
                 filename,
@@ -296,7 +298,7 @@ export class WalletRPC {
     }
 
     hasPassword () {
-        console.log('>>>>>>>>>>>>>>>>>hasPassword')
+        //console.log('>>>>>>>>>>>>>>>>>hasPassword')
         if (this.wallet_state.password_hash === null) {
             this.sendGateway("set_has_password", false)
             return
@@ -314,7 +316,7 @@ export class WalletRPC {
     }
 
     async validateAddress (address) {
-        console.log('>>>>>>>>>>>>>>>>>validateAddress')
+        //console.log('>>>>>>>>>>>>>>>>>validateAddress')
         let validateAddressData = await this.rpcWallet.validateAddress(address)
         //let validateAddressData = await this.rpc.sendRPC_WithMD5("validate_address", {address})
         if (validateAddressData.hasOwnProperty("error")) {
@@ -337,7 +339,7 @@ export class WalletRPC {
     }
 
     async restoreWallet (filename, password, seed, refresh_type, refresh_start_timestamp_or_height) {
-        console.log('>>>>>>>>>>>>>>>>>restoreWallet')
+        //console.log('>>>>>>>>>>>>>>>>>restoreWallet')
         if (refresh_type === "date") {
             // Convert timestamp to 00:00 and move back a day
             // Core code also moved back some amount of blocks
@@ -393,7 +395,7 @@ export class WalletRPC {
     }
 
     async restoreViewWallet (filename, password, address, viewkey, refresh_type, refresh_start_timestamp_or_height) {
-        console.log('>>>>>>>>>>>>>>>>>restoreViewWallet')
+        //console.log('>>>>>>>>>>>>>>>>>restoreViewWallet')
         if (refresh_type === "date") {
             // Convert timestamp to 00:00 and move back a day
             // Core code also moved back some amount of blocks
@@ -433,7 +435,7 @@ export class WalletRPC {
     }
 
     async importWallet (filename, password, import_path) {
-        console.log('>>>>>>>>>>>>>>>>>importWallet')
+        //console.log('>>>>>>>>>>>>>>>>>importWallet')
         // trim off suffix if exists
         if (import_path.endsWith(".keys")) {
             import_path = import_path.substring(0, import_path.length - ".keys".length)
@@ -464,7 +466,7 @@ export class WalletRPC {
             //     filename,
             //     password
             // })
-            console.log(openWalletData, '<<<<<<<<<<<<<<<<<<<<<<<<OPENWALLETDATA')
+            //console.log(openWalletData, '<<<<<<<<<<<<<<<<<<<<<<<<OPENWALLETDATA')
             if (openWalletData.hasOwnProperty("error")) {
                 fs.unlinkSync(destination)
                 fs.unlinkSync(destination + ".keys")
@@ -483,7 +485,7 @@ export class WalletRPC {
     }
 
     async finalizeNewWallet (filename, newly_created = false) {
-        console.log('>>>>>>>>>>>>>>>>>finalizeNewWallet')
+        //console.log('>>>>>>>>>>>>>>>>>finalizeNewWallet')
         let data = []
         let wallet = {
             info: {
@@ -516,7 +518,7 @@ export class WalletRPC {
             // data.push(await this.rpc.sendRPC_WithMD5("query_key", { key_type: "spend_key" }))
             // data.push(await this.rpc.sendRPC_WithMD5("query_key", { key_type: "view_key" }))
 
-            console.log(data, '<<<<<<<<<<<<<<<<<<<<<<<<<<finalizeNewWallet')
+            //console.log(data, '<<<<<<<<<<<<<<<<<<<<<<<<<<finalizeNewWallet')
             
             for (let n of data) {
                 if (n.hasOwnProperty("error")) {
@@ -558,17 +560,18 @@ export class WalletRPC {
     }
 
     async openWallet (filename, password) {
-        console.log('>>>>>>>>>>>>>>>>>openWallet')
+        //console.log('>>>>>>>>>>>>>>>>>openWallet')
         try {
             let openWalletData = await this.rpcWallet.openWallet({filename, password})
                 
             //let openWalletData = await this.rpc.sendRPC_WithMD5("open_wallet", {filename, password})
             if (openWalletData.hasOwnProperty("error")) {
-                this.sendGateway("set_wallet_error", { status: openWalletData.error })
+                this.sendGateway("set_wallet_error", { status: { code: -1, message: "Failed to open wallet" } })
                 return
             }
         } catch(error) {
-            console.log('openWallet>>>>>>>>>>>>>>>>>>', error)
+            this.sendGateway("set_wallet_error", { status: { code: -1, message: "Failed to open wallet" } })
+            return
         }
 
         let address_txt_path = path.join(this.wallet_dir, filename + ".address.txt")
@@ -596,7 +599,7 @@ export class WalletRPC {
 
         // Check if we have a view only wallet by querying the spend key
         let queryKeyData = await this.rpcWallet.queryKey({ key_type: "spend_key" })
-        console.log(queryKeyData)
+        //console.log(queryKeyData)
         // let queryKeyData = await this.rpc.sendRPC_WithMD5("query_key", { key_type: "spend_key" })
         // if (queryKeyData.hasOwnProperty("error") || !queryKeyData.hasOwnProperty("result")) {
             if (queryKeyData.hasOwnProperty("error") || !queryKeyData.hasOwnProperty("key")) {
@@ -651,15 +654,15 @@ export class WalletRPC {
             // data.push(await this.rpc.sendRPC_WithMD5("getbalance", { account_index: 0 }, 5000))
 
         } catch (error) {
-            console.log(error, '<<<<<<<<<<<<<<<<,,wtf')
+            //console.log(error, '<<<<<<<<<<<<<<<<,,wtf')
             didError = true
         }
-        console.log('heartbeatAction>>>>>>>>>>', JSON.stringify(data, null, '\t'))
+
         try {
             for (let n of data) {
                 // if (n.hasOwnProperty("error") || !n.hasOwnProperty("result")) {
                 if (Object.keys(n).length === 0 || n.hasOwnProperty("error")) {
-                    console.log(n, 'heartbeatAction&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
+                    //console.log(n, 'heartbeatAction&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
                     // Maybe we also need to look into the other error codes it could give us
                     // Error -13: No wallet file - This occurs when you call open wallet while another wallet is still syncing
                     if (extended && n.error && n.error.code === -13) {
@@ -715,7 +718,7 @@ try {
     actions.push(await this.getTransactions())
     actions.push(await this.getAddressList())
 } catch (error) {
-    console.log(error, 'mofo!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    //console.log(error, 'mofo!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 }
 
 try {
@@ -723,12 +726,12 @@ try {
         actions.push(await this.getAddressBook())
     }
 } catch (error) {
-    console.log(error, 'mofo!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!getAddressBook')
+    //console.log(error, 'mofo!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!getAddressBook')
 }
                     Promise.all(actions).then((data) => {
                         try {
                             if (data) {
-                                console.log('wallet>>>>>>>>>>>>>>', data, 'fuck')
+                                //console.log('wallet>>>>>>>>>>>>>>', data, 'fuck')
                                 for (let n of data) {
                                     Object.keys(n).map(key => {
                                         wallet[key] = Object.assign(wallet[key], n[key])
@@ -748,7 +751,7 @@ try {
         }
         catch(error) {
             didError = true
-            console.log(error, 'wtf###################################')
+            //console.log(error, 'wtf###################################')
         }
 
         // Set the wallet state on initial heartbeat
@@ -756,16 +759,15 @@ try {
             if (!didError) {
                 this.sendGateway("set_wallet_data", wallet)
             } else {
-                this.closeWallet().then(() => {
-                    this.sendGateway("set_wallet_error", { status: { code: -1, i18n: "notification.errors.failedWalletOpen" } })
-                })
+                await this.closeWallet()
+                this.sendGateway("set_wallet_error", { status: { code: -1, i18n: "notification.errors.failedWalletOpen" } })
             }
         }
     }
 
     transfer (password, amount, address, payment_id, priority, note, address_book = {}) {
-        console.log('>>>>>>>>>>>>>>>>>transfer')
-        console.log(password, amount, address, payment_id, priority, note, address_book)
+        //console.log('>>>>>>>>>>>>>>>>>transfer')
+        //console.log(password, amount, address, payment_id, priority, note, address_book)
         crypto.pbkdf2(password, this.auth[2], 1000, 64, "sha512", async (err, password_hash) => {
             if (err) {
                 this.sendGateway("set_tx_status", {
@@ -838,7 +840,7 @@ try {
     }
 
     async proveTransaction (txid, address, message) {
-        console.log('>>>>>>>>>>>>>>>>>proveTransaction')
+        //console.log('>>>>>>>>>>>>>>>>>proveTransaction')
         const _address = address.trim() === "" ? null : address
         const _message = message.trim() === "" ? null : message
 
@@ -881,7 +883,7 @@ try {
     }
 
     async checkTransactionProof (signature, txid, address, message) {
-        console.log('>>>>>>>>>>>>>>>>>checkTransactionProof')
+        //console.log('>>>>>>>>>>>>>>>>>checkTransactionProof')
         const _address = address.trim() === "" ? null : address
         const _message = message.trim() === "" ? null : message
 
@@ -924,19 +926,19 @@ try {
         })
     }
     async rescanBlockchain () {
-        console.log('>>>>>>>>>>>>>>>>>rescanBlockchain')
+        //console.log('>>>>>>>>>>>>>>>>>rescanBlockchain')
         //await this.rpc.sendRPC_WithMD5("rescan_blockchain")
         await this.rpcWallet.rescanBlockchain()
     }
 
     async rescanSpent () {
-        console.log('>>>>>>>>>>>>>>>>>rescanSpent')
+        //console.log('>>>>>>>>>>>>>>>>>rescanSpent')
         //await this.rpc.sendRPC_WithMD5("rescan_spent")
         await this.rpcWallet.rescanSpent()
     }
 
     getPrivateKeys (password) {
-        console.log('>>>>>>>>>>>>>>>>>getPrivateKeys')
+        //console.log('>>>>>>>>>>>>>>>>>getPrivateKeys')
         crypto.pbkdf2(password, this.auth[2], 1000, 64, "sha512", async (err, password_hash) => {
             if (err) {
                 this.sendGateway("set_wallet_data", {
@@ -987,7 +989,7 @@ try {
     }
 
     getAddressList () {
-        console.log('>>>>>>>>>>>>>>>>>getAddressList')
+        //console.log('>>>>>>>>>>>>>>>>>getAddressList')
         return new Promise(async(resolve, reject) => {
             try {
 
@@ -1069,11 +1071,11 @@ try {
     }
 
     getTransactions () {
-        console.log('>>>>>>>>>>>>>>>>>getTransactions')
+        //console.log('>>>>>>>>>>>>>>>>>getTransactions')
         return new Promise(async (resolve, reject) => {
             try {
                 let getTransfersData = await this.rpcWallet.getTransfers({ in: true, out: true, pending: true, failed: true, pool: true })
-                console.log(getTransfersData)
+                //console.log(getTransfersData)
                 if (Object.keys(getTransfersData).length === 0  || getTransfersData.hasOwnProperty("error")) {
                     resolve({})
                     return
@@ -1083,7 +1085,7 @@ try {
                         tx_list: []
                     }
                 }
-console.log(getTransfersData, 'getTransactions<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+//console.log(getTransfersData, 'getTransactions<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
                 if (getTransfersData.hasOwnProperty("in")) { 
                     wallet.transactions.tx_list = wallet.transactions.tx_list.concat(getTransfersData.in) 
                 }
@@ -1122,7 +1124,7 @@ console.log(getTransfersData, 'getTransactions<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     }
 
     getAddressBook () {
-        console.log('>>>>>>>>>>>>>>>>>getAddressBook')
+        //console.log('>>>>>>>>>>>>>>>>>getAddressBook')
         return new Promise(async (resolve, reject) => {
             let wallet = {
                 address_list: {
@@ -1139,7 +1141,7 @@ console.log(getTransfersData, 'getTransactions<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                     resolve({})
                     return
                 }
-console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
+//console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
                 if (getAddressBookData.entries) {
                     for (const i = 0; i < getAddressBookData.entries.length; i++) {
                         let entry = getAddressBookData.entries[i]
@@ -1170,14 +1172,14 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
                 resolve(wallet)
             } 
             catch (error) {
-                console.log(error, 'getAddressBook..............................................')
+                //console.log(error, 'getAddressBook..............................................')
                 reject()
             }
         })
     }
 
     async deleteAddressBook (index = false) {
-        console.log('>>>>>>>>>>>>>>>>>deleteAddressBook')
+        //console.log('>>>>>>>>>>>>>>>>>deleteAddressBook')
         if (index !== false) {
             await this.rpcWallet.deleteAddressBook({ index: index })
             // await this.rpc.sendRPC_WithMD5("delete_address_book", { index: index })
@@ -1188,7 +1190,7 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
     }
 
     async addAddressBook (address, payment_id = null, description = "", name = "", starred = false, index = false) {
-        console.log('>>>>>>>>>>>>>>>>>addAddressBook')
+        //console.log('>>>>>>>>>>>>>>>>>addAddressBook')
         if (index !== false) {
             await this.rpcWallet.deleteAddressBook({ index: index })
             // await this.rpc.sendRPC_WithMD5("delete_address_book", { index: index })
@@ -1218,7 +1220,7 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
     }
 
     async saveTxNotes (txid, note) {
-        console.log('>>>>>>>>>>>>>>>>>saveTxNotes')
+        //console.log('>>>>>>>>>>>>>>>>>saveTxNotes')
         await this.rpcWallet.saveTxNotes({ txids: [txid], notes: [note] })
         // await this.rpc.sendRPC_WithMD5("set_tx_notes", { txids: [txid], notes: [note] })
         const walletData = await this.getTransactions()
@@ -1226,7 +1228,7 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
     }
 
     exportKeyImages (password, filename = null) {
-        console.log('>>>>>>>>>>>>>>>>>exportKeyImages')
+        //console.log('>>>>>>>>>>>>>>>>>exportKeyImages')
         crypto.pbkdf2(password, this.auth[2], 1000, 64, "sha512", async(err, password_hash) => {
             if (err) {
                 this.sendGateway("show_notification", { type: "negative", message: "Internal error", timeout: 2000 })
@@ -1251,7 +1253,7 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
     }
 
     importKeyImages (password, filename = null) {
-        console.log('>>>>>>>>>>>>>>>>>importKeyImages')
+        //console.log('>>>>>>>>>>>>>>>>>importKeyImages')
         crypto.pbkdf2(password, this.auth[2], 1000, 64, "sha512", async (err, password_hash) => {
             if (err) {
                 this.sendGateway("show_notification", { type: "negative", message: "Internal error", timeout: 2000 })
@@ -1276,7 +1278,7 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
     }
 
     listWallets (legacy = false) {
-        console.log('>>>>>>>>>>>>>>>>>listWallets')
+        //console.log('>>>>>>>>>>>>>>>>>listWallets')
         let wallets = {
             list: []
         }
@@ -1352,7 +1354,7 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
     }
 
     changeWalletPassword (old_password, new_password) {
-        console.log('>>>>>>>>>>>>>>>>>changeWalletPassword')
+        //console.log('>>>>>>>>>>>>>>>>>changeWalletPassword')
         crypto.pbkdf2(old_password, this.auth[2], 1000, 64, "sha512", async (err, password_hash) => {
             if (err) {
                 this.sendGateway("show_notification", { type: "negative", message: "Internal error", timeout: 2000 })
@@ -1362,17 +1364,17 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
                 this.sendGateway("show_notification", { type: "negative", message: "Invalid old password", timeout: 2000 })
                 return
             }
-
-            const changeWalletPasswordData = await this.rpcWallet.changeWalletPassword({ old_password, new_password })
-            // const changeWalletPasswordData = await this.rpc.sendRPC_WithMD5("change_wallet_password", { old_password, new_password })
-            if (changeWalletPasswordData.hasOwnProperty("error") || !changeWalletPasswordData.hasOwnProperty("result")) {
+            try {
+                await this.rpcWallet.changeWalletPassword({ old_password, new_password })
+            }
+            catch(error) {
                 this.sendGateway("show_notification", { type: "negative", message: "Error changing password", timeout: 2000 })
-                return
+                return           
             }
 
             // store hash of the password so we can check against it later when requesting private keys, or for sending txs
             this.wallet_state.password_hash = crypto.pbkdf2Sync(new_password, this.auth[2], 1000, 64, "sha512").toString("hex")
-            console.log('TODO: FIX ME!')
+            //console.log('TODO: FIX ME!')
             //this.rpc.setAuthorization(this.auth[0], this.auth[1])
 
             this.sendGateway("show_notification", { message: "Password updated", timeout: 2000 })
@@ -1380,7 +1382,7 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
     }
 
     deleteWallet (password) {
-        console.log('>>>>>>>>>>>>>>>>>deleteWallet')
+        //console.log('>>>>>>>>>>>>>>>>>deleteWallet')
         crypto.pbkdf2(password, this.auth[2], 1000, 64, "sha512", async (err, password_hash) => {
             if (err) {
                 this.sendGateway("show_notification", { type: "negative", message: "Internal error", timeout: 2000 })
@@ -1401,19 +1403,18 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
         })
     }
 
-    saveWallet () {
-        console.log('>>>>>>>>>>>>>>>>>saveWallet')
-        return new Promise(async (resolve, reject) => {
-            // await this.rpc.sendRPC_WithMD5("store")
+    async saveWallet () {
+        try {
             await this.rpcWallet.store()
-            resolve()
-        })
+        }
+        catch(error) {}
     }
 
-    closeWallet () {
-        console.log('>>>>>>>>>>>>>>>>>closeWallet')
-        return new Promise(async (resolve, reject) => {
-            clearInterval(this.heartbeat)
+    async closeWallet () {
+        //console.log('>>>>>>>>>>>>>>>>>closeWallet')
+        try {
+            if (this.heartbeat)
+                clearInterval(this.heartbeat)
             this.wallet_state = {
                 open: false,
                 name: "",
@@ -1426,10 +1427,9 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
             }
 
             await this.saveWallet()
-            // await this.rpc.sendRPC_WithMD5("close_wallet")
             await this.rpcWallet.closeWallet()
-            resolve()
-        })
+        }
+        catch(error) {}
     }
 
     sendGateway (method, data) {
@@ -1443,11 +1443,8 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
     quit () {
         return new Promise((resolve, reject) => {
             if (this.walletRPCProcess) {
-                this.closeWallet().then(() => {
-                    // normally we would exit wallet after this promise
-                    // however if the wallet is not responsive to RPC
-                    // requests then we must forcefully close it below
-                })
+                console.log('closing at quit>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+                this.closeWallet()
                 setTimeout(() => {
                     this.walletRPCProcess.on("close", code => {
                         clearTimeout(this.forceKill)
@@ -1470,7 +1467,7 @@ console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
     }
 
     exportTransactions (params) {
-        console.log('>>>>>>>>>>>>>>>>>exportTransactions')
+        //console.log('>>>>>>>>>>>>>>>>>exportTransactions')
         return new Promise((resolve, reject) => {
             if (params.hasOwnProperty("export_path")) {
                 if (!fs.existsSync(params.export_path)) 
