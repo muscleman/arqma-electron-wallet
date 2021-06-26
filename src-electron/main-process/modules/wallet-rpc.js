@@ -1,4 +1,5 @@
 import child_process from "child_process"
+import { connectableObservableDescriptor } from "rxjs/internal/observable/ConnectableObservable"
 const os = require("os")
 const fs = require("fs")
 const path = require("path")
@@ -926,19 +927,14 @@ try {
         })
     }
     async rescanBlockchain () {
-        //console.log('>>>>>>>>>>>>>>>>>rescanBlockchain')
-        //await this.rpc.sendRPC_WithMD5("rescan_blockchain")
-        await this.rpcWallet.rescanBlockchain()
+         await this.rpcWallet.rescanBlockchain()
     }
 
     async rescanSpent () {
-        //console.log('>>>>>>>>>>>>>>>>>rescanSpent')
-        //await this.rpc.sendRPC_WithMD5("rescan_spent")
         await this.rpcWallet.rescanSpent()
     }
 
     getPrivateKeys (password) {
-        //console.log('>>>>>>>>>>>>>>>>>getPrivateKeys')
         crypto.pbkdf2(password, this.auth[2], 1000, 64, "sha512", async (err, password_hash) => {
             if (err) {
                 this.sendGateway("set_wallet_data", {
@@ -987,195 +983,182 @@ try {
             this.sendGateway("set_wallet_data", wallet)
         })
     }
-
-    getAddressList () {
+    
+    async getAddressList () {
         //console.log('>>>>>>>>>>>>>>>>>getAddressList')
-        return new Promise(async(resolve, reject) => {
-            try {
+        let getAddressData = {}
+        let getBalanceData = {}
+        try {
+            getAddressData = await this.rpcWallet.getAddress({ account_index: 0 })
+        }
+        catch (error) {
+            return getAddressData
+        }
+        try {
+            getBalanceData = await this.rpcWallet.getBalance({ account_index: 0 })
+        }
+        catch (error) {
+            return getBalanceData
+        }
+        let num_unused_addresses = 10
+        let wallet = {
+            info: {
+                address: getAddressData.address,
+                balance: getBalanceData.balance,
+                unlocked_balance: getBalanceData.unlocked_balance
+                // num_unspent_outputs: getBalanceData.result.num_unspent_outputs
+            },
+            address_list: {
+                primary: [],
+                used: [],
+                unused: []
+            }
+        }
 
-                const getAddressData = await this.rpcWallet.getAddress({ account_index: 0 })
-                // const getAddressData = await this.rpc.sendRPC_WithMD5("get_address", { account_index: 0 })
-                if (Object.keys(getAddressData).length === 0 || getAddressData.hasOwnProperty("error")) {
-                    resolve({})
-                    return
-                }
-                const getBalanceData = await this.rpcWallet.getBalance({ account_index: 0 })
-                // const getBalanceData = await this.rpc.sendRPC_WithMD5("getbalance", { account_index: 0 })
-                if (Object.keys(getBalanceData).length === 0 || getBalanceData.hasOwnProperty("error")) {
-                    resolve({})
-                    return
-                }
-                let num_unused_addresses = 10
-                let wallet = {
-                    info: {
-                        address: getAddressData.address,
-                        balance: getBalanceData.balance,
-                        unlocked_balance: getBalanceData.unlocked_balance
-                        // num_unspent_outputs: getBalanceData.result.num_unspent_outputs
-                    },
-                    address_list: {
-                        primary: [],
-                        used: [],
-                        unused: []
-                    }
-                }
+        for (let address of getAddressData.addresses) {
+            address.balance = null
+            address.unlocked_balance = null
+            address.num_unspent_outputs = null
 
-                for (let address of getAddressData.addresses) {
-                    address.balance = null
-                    address.unlocked_balance = null
-                    address.num_unspent_outputs = null
-    
-                    if (getBalanceData.hasOwnProperty("per_subaddress")) {
-                        for (let address_balance of getBalanceData.per_subaddress) {
-                            if (address_balance.address_index === address.address_index) {
-                                address.balance = address_balance.balance
-                                address.unlocked_balance = address_balance.unlocked_balance
-                                address.num_unspent_outputs = address_balance.num_unspent_outputs
-                                break
-                            }
-                        }
+            if (getBalanceData.hasOwnProperty("per_subaddress")) {
+                for (let address_balance of getBalanceData.per_subaddress) {
+                    if (address_balance.address_index === address.address_index) {
+                        address.balance = address_balance.balance
+                        address.unlocked_balance = address_balance.unlocked_balance
+                        address.num_unspent_outputs = address_balance.num_unspent_outputs
+                        break
                     }
-    
-                    if (address.address_index === 0) {
-                        wallet.address_list.primary.push(address)
-                    } else if (address.used) {
-                        wallet.address_list.used.push(address)
-                    } else {
-                        wallet.address_list.unused.push(address)
-                    }
-                }
-    
-                // limit to 10 unused addresses
-                wallet.address_list.unused = wallet.address_list.unused.slice(0, 10)
-    
-                if (wallet.address_list.unused.length < num_unused_addresses &&
-                    !wallet.address_list.primary[0].address.startsWith("ar") &&
-                    !wallet.address_list.primary[0].address.startsWith("aRi")) {
-                    for (let n = wallet.address_list.unused.length; n < num_unused_addresses; n++) {
-                        let createAddressData = await this.rpcWallet.createAddress({ account_index: 0 })
-                        // let createAddressData = await this.rpc.sendRPC_WithMD5("create_address", { account_index: 0 })
-                        wallet.address_list.unused.push(createAddressData)
-                        if (wallet.address_list.unused.length == num_unused_addresses) {
-                            // should sort them here
-                            resolve(wallet)
-                        }
-                    }
-                } else {
-                    resolve(wallet)
                 }
             }
-            catch (error) {
-                resolve({})
+
+            if (address.address_index === 0) {
+                wallet.address_list.primary.push(address)
+            } else if (address.used) {
+                wallet.address_list.used.push(address)
+            } else {
+                wallet.address_list.unused.push(address)
             }
-        })
+        }
+
+        // limit to 10 unused addresses
+        wallet.address_list.unused = wallet.address_list.unused.slice(0, 10)
+
+        if (wallet.address_list.unused.length < num_unused_addresses &&
+            !wallet.address_list.primary[0].address.startsWith("ar") &&
+            !wallet.address_list.primary[0].address.startsWith("aRi")) {
+            for (let n = wallet.address_list.unused.length; n < num_unused_addresses; n++) {
+                let createAddressData = await this.rpcWallet.createAddress({ account_index: 0 })
+                wallet.address_list.unused.push(createAddressData)
+                if (wallet.address_list.unused.length == num_unused_addresses) {
+                    // should sort them here
+                    return wallet
+                }
+            }
+        } else {
+            return wallet
+        }
     }
-
-    getTransactions () {
+    
+    async getTransactions () {
         //console.log('>>>>>>>>>>>>>>>>>getTransactions')
-        return new Promise(async (resolve, reject) => {
-            try {
-                let getTransfersData = await this.rpcWallet.getTransfers({ in: true, out: true, pending: true, failed: true, pool: true })
-                //console.log(getTransfersData)
-                if (Object.keys(getTransfersData).length === 0  || getTransfersData.hasOwnProperty("error")) {
-                    resolve({})
-                    return
-                }
-                let wallet = {
-                    transactions: {
-                        tx_list: []
-                    }
-                }
-//console.log(getTransfersData, 'getTransactions<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
-                if (getTransfersData.hasOwnProperty("in")) { 
-                    wallet.transactions.tx_list = wallet.transactions.tx_list.concat(getTransfersData.in) 
-                }
-                if (getTransfersData.hasOwnProperty("out")) { 
-                    wallet.transactions.tx_list = wallet.transactions.tx_list.concat(getTransfersData.out) 
-                }
-                if (getTransfersData.hasOwnProperty("pending")) { 
-                    wallet.transactions.tx_list = wallet.transactions.tx_list.concat(getTransfersData.pending) 
-                }
-                if (getTransfersData.hasOwnProperty("failed")) { 
-                    wallet.transactions.tx_list = wallet.transactions.tx_list.concat(getTransfersData.failed) 
-                }
-                if (getTransfersData.hasOwnProperty("pool")) { 
-                    wallet.transactions.tx_list = wallet.transactions.tx_list.concat(getTransfersData.pool) 
-                }
-
-                for (let i = 0; i < wallet.transactions.tx_list.length; i++) {
-                    if (/^0*$/.test(wallet.transactions.tx_list[i].payment_id)) {
-                        wallet.transactions.tx_list[i].payment_id = ""
-                    } else if (/^0*$/.test(wallet.transactions.tx_list[i].payment_id.substring(16))) {
-                        wallet.transactions.tx_list[i].payment_id = wallet.transactions.tx_list[i].payment_id.substring(0, 16)
-                    }
-                }
-
-                wallet.transactions.tx_list.sort(function (a, b) {
-                    if (a.timestamp < b.timestamp) return 1
-                    if (a.timestamp > b.timestamp) return -1
-                    return 0
-                })
-
-                resolve(wallet)
-            } catch (error) {
-                reject()
+        let getTransfersData = {}
+        try {
+            getTransfersData = await this.rpcWallet.getTransfers({ in: true, out: true, pending: true, failed: true, pool: true })
+        } catch (error) {
+            return getTransfersData
+        }
+        let wallet = {
+            transactions: {
+                tx_list: []
             }
+        }
+        if (getTransfersData.hasOwnProperty("in")) { 
+            wallet.transactions.tx_list = wallet.transactions.tx_list.concat(getTransfersData.in) 
+        }
+        if (getTransfersData.hasOwnProperty("out")) { 
+            wallet.transactions.tx_list = wallet.transactions.tx_list.concat(getTransfersData.out) 
+        }
+        if (getTransfersData.hasOwnProperty("pending")) { 
+            wallet.transactions.tx_list = wallet.transactions.tx_list.concat(getTransfersData.pending) 
+        }
+        if (getTransfersData.hasOwnProperty("failed")) { 
+            wallet.transactions.tx_list = wallet.transactions.tx_list.concat(getTransfersData.failed) 
+        }
+        if (getTransfersData.hasOwnProperty("pool")) { 
+            wallet.transactions.tx_list = wallet.transactions.tx_list.concat(getTransfersData.pool) 
+        }
+
+        for (let i = 0; i < wallet.transactions.tx_list.length; i++) {
+            if (/^0*$/.test(wallet.transactions.tx_list[i].payment_id)) {
+                wallet.transactions.tx_list[i].payment_id = ""
+            } else if (/^0*$/.test(wallet.transactions.tx_list[i].payment_id.substring(16))) {
+                wallet.transactions.tx_list[i].payment_id = wallet.transactions.tx_list[i].payment_id.substring(0, 16)
+            }
+        }
+
+        wallet.transactions.tx_list.sort(function (a, b) {
+            if (a.timestamp < b.timestamp) return 1
+            if (a.timestamp > b.timestamp) return -1
+            return 0
         })
+
+        return wallet
     }
 
-    getAddressBook () {
+    async getAddressBook () {
         //console.log('>>>>>>>>>>>>>>>>>getAddressBook')
-        return new Promise(async (resolve, reject) => {
-            let wallet = {
-                address_list: {
-                    address_book: [],
-                    address_book_starred: []
-                }
+        let wallet = {
+            address_list: {
+                address_book: [],
+                address_book_starred: []
             }
-            try {
-                resolve({})
-                return
-                const getAddressBookData = await this.rpcWallet.getAddressBook({entries: []})
-                // const getAddressBookData = await this.rpc.sendRPC_WithMD5("get_address_book")
-                if (Object.keys(getAddressBookData).length === 0 || getAddressBookData.hasOwnProperty("error")) {
-                    resolve({})
-                    return
-                }
-//console.log('why<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
-                if (getAddressBookData.entries) {
-                    for (const i = 0; i < getAddressBookData.entries.length; i++) {
-                        let entry = getAddressBookData.entries[i]
-                        let desc = entry.description.split("::")
-                        if (desc.length === 3) {
-                            entry.starred = desc[0] === "starred"
-                            entry.name = desc[1]
-                            entry.description = desc[2]
-                        } else if (desc.length === 2) {
-                            entry.starred = false
-                            entry.name = desc[0]
-                            entry.description = desc[1]
-                        } else {
-                            entry.starred = false
-                            entry.name = entry.description
-                            entry.description = ""
-                        }
+        }
+        let getAddressBookData = {}
+        try {
+            // const subaddresses = await this.rpcWallet.getAccounts()
+            // console.log(subaddresses)
+            // if (subaddresses.subaddress_accounts.length === 0)
+            //     return getAddressBookData
+            // const numberOfAccounts = subaddresses.subaddress_accounts.map(subAddress => {
+            //     return subaddresses.account_index
+            // })
+            // console.log(numberOfAccounts)
+            getAddressBookData = await this.rpcWallet.getAddressBook({entries: [0,1,2]})
+        } 
+        catch (error) {
+            return getAddressBookData
+        }
 
-                        if (/^0*$/.test(entry.payment_id)) {
-                            entry.payment_id = ""
-                        } else if (/^0*$/.test(entry.payment_id.substring(16))) {
-                            entry.payment_id = entry.payment_id.substring(0, 16)
-                        }
-
-                        if (entry.starred) { wallet.address_list.address_book_starred.push(entry) } else { wallet.address_list.address_book.push(entry) }
-                    }
+        if (getAddressBookData.entries) {
+            for (let i = 0; i < getAddressBookData.entries.length; i++) {
+                let entry = getAddressBookData.entries[i]
+                let desc = entry.description.split("::")
+                if (desc.length === 3) {
+                    entry.starred = desc[0] === "starred"
+                    entry.name = desc[1]
+                    entry.description = desc[2]
+                } else if (desc.length === 2) {
+                    entry.starred = false
+                    entry.name = desc[0]
+                    entry.description = desc[1]
+                } else {
+                    entry.starred = false
+                    entry.name = entry.description
+                    entry.description = ""
                 }
-                resolve(wallet)
-            } 
-            catch (error) {
-                //console.log(error, 'getAddressBook..............................................')
-                reject()
+                if (/^0*$/.test(entry.payment_id)) {
+                    entry.payment_id = ""
+                } else if (/^0*$/.test(entry.payment_id.substring(16))) {
+                    entry.payment_id = entry.payment_id.substring(0, 16)
+                }
+
+                if (entry.starred)
+                     wallet.address_list.address_book_starred.push(entry)
+                else 
+                    wallet.address_list.address_book.push(entry)
             }
-        })
+        }
+        return wallet
     }
 
     async deleteAddressBook (index = false) {
@@ -1189,19 +1172,25 @@ try {
         }
     }
 
-    async addAddressBook (address, payment_id = null, description = "", name = "", starred = false, index = false) {
+    async addAddressBook (address, payment_id = "", description = "", name = "", starred = false, index = false) {
         //console.log('>>>>>>>>>>>>>>>>>addAddressBook')
         if (index !== false) {
-            await this.rpcWallet.deleteAddressBook({ index: index })
-            // await this.rpc.sendRPC_WithMD5("delete_address_book", { index: index })
-            await this.addAddressBook(address, payment_id, description, name, starred)
+            try {
+                await this.rpcWallet.deleteAddressBook({ index: index })
+            }
+            catch (error) {console.log('bombed100')}
+            try {
+                await this.addAddressBook(address, payment_id, description, name, starred)
+            }
+            catch (error) {console.log('bombed1')}
             return
         }
 
         let params = {
             address
         }
-        if (payment_id != null) { params.payment_id = payment_id }
+        if (!!payment_id) 
+            params.payment_id = payment_id
 
         let desc = [
         ]
@@ -1212,10 +1201,15 @@ try {
 
         params.description = desc.join("::")
 
-        // await this.rpc.sendRPC_WithMD5("add_address_book", params)
+        try {
         await this.rpcWallet.addAddressBook(params)
+        }
+        catch (error) {
+            console.log(error, 'addAddressBook<<<<<<<<<<<<<<<<<')
+        }
         await this.saveWallet()
         const getAddressBookData = await this.getAddressBook()
+        console.log(getAddressBookData, 'addressbookdata<<<<<<<<<<<<<<<<<')
         this.sendGateway("set_wallet_data", getAddressBookData)
     }
 
