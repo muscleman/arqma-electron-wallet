@@ -83,6 +83,9 @@ export class Market {
         clearInterval(this.heartbeat)
         clearInterval(this.heartbeat_slow)
         return new Promise((resolve, reject) => {
+            if (this.agent) {
+                this.agent.destroy()
+            }
             resolve()
         })
     }

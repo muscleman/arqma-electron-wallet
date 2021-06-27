@@ -430,6 +430,9 @@ export class Daemon {
         return new Promise((resolve, reject) => {
             if (this.daemonProcess) {
                 this.daemonProcess.on("close", code => {
+                    if (this.agent) {
+                        this.agent.destroy()
+                    }
                     resolve()
                 })
                 this.daemonProcess.kill()
