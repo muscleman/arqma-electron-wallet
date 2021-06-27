@@ -19,7 +19,7 @@ export class Daemon {
         this.daemon_info = {}
         this.dealer = {}
         this.zmq_enabled = false
-
+        this.agent = new https.Agent({ keepAlive: true, maxSockets: 1})
         
     }
 
@@ -52,7 +52,7 @@ export class Daemon {
             headers: {
                 "Accept": "application/json"
             },
-            agent: new https.Agent({ keepAlive: true, maxSockets: 1}),
+            agent: this.agent,
             url: "https://explorer.arqma.com/api/networkinfo"
         }
         if (this.testnet) {

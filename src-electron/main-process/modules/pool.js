@@ -7,12 +7,10 @@ import { Miner } from "./pool/miner"
 import { Block } from "./pool/block"
 import { Database } from "./pool/database"
 import { diff1, noncePattern, uid, logger } from "./pool/utils"
-import { RPC } from "./rpc"
+import axios from "axios"
 const zmq = require("zeromq")
 const { fromEvent } = require("rxjs")
-const http = require("http")
-const fetch = require("node-fetch")
-
+const rpcDaemon = require('@arqma/arqma-rpc').RPCDaemon
 
 
 export class Pool {
@@ -24,11 +22,9 @@ export class Pool {
         this.server = null
         this.isPoolRunning = false
         this.id = 0
-        this.agent = new http.Agent({ keepAlive: true, maxSockets: 1 })
         this.dealer = null
         this.BlockTemplateParameters = null
         this.address_abbr = ""
-
         this.intervals = {
             startup: null,
             job: null,
@@ -65,6 +61,7 @@ export class Pool {
     }
 
     init (options) {
+        //console.log('>>>>>>>>>>>>>>>>>pool.init')
         if (this.daemon_type === "remote") {
             this.sendStatus(0)
             return false
@@ -74,9 +71,12 @@ export class Pool {
         this.hostname = options.daemon.rpc_bind_ip
         this.port = options.daemon.rpc_bind_port
 
-
-        this.rpc = new RPC(this.protocol, this.hostname, this.port)
-
+        try {
+            this.rpcDaemon = rpcDaemon.createDaemonClient({url: `${this.protocol}${this.hostname}:${this.port}`})
+        } 
+        catch (error) {
+            console.log(`pool.init ${error}`)
+        }
 
         try {
             this.sendStatus(0)
@@ -145,6 +145,7 @@ export class Pool {
     }
 
     startWithZmq (isDaemonSyncd = false) {
+        //console.log('>>>>>>>>>>>>>>>>>pool.startWithZmq')
         if (this.daemon_type === "local_zmq") {
             if (this.isPoolRunning) return
             this.isPoolRunning = true
@@ -166,6 +167,7 @@ export class Pool {
     }
 
     start () {
+        //console.log('>>>>>>>>>>>>>>>>>pool.start')
         if (this.daemon_type === "remote") {
             return false
         }
@@ -221,7 +223,7 @@ export class Pool {
         if (this.testnet) {
             url = "https://stageblocks.arqma.com/api/networkinfo"
         }
-        return fetch(url)
+        return axios.get(url)
     }
 
     statsHeartbeat () {
@@ -561,6 +563,7 @@ export class Pool {
     }
 
     processShare (job, block, nonce, hash) {
+        //console.log('>>>>>>>>>>>>>>>>>pool.processShare')
         return new Promise((resolve, reject) => {
             const hash_array = [...Buffer.from(hash, "hex")].reverse()
             const hash_bigint = BigInt.fromArray(hash_array, 256, false)
@@ -601,6 +604,7 @@ export class Pool {
     }
 
     updateVarDiff () {
+        //console.log('>>>>>>>>>>>>>>>>>pool.updateVarDiff')
         for (let connection_id in this.connections) {
             const miner = this.connections[connection_id]
             if (!miner.varDiff.fixed) {
@@ -615,26 +619,23 @@ export class Pool {
     }
 
     findBlock (height) {
+        //console.log('>>>>>>>>>>>>>>>>>pool.findBlock')
         return this.blocks.valid.filter(block => block.height === height).pop()
     }
 
     calculateBlockTemplateParameters () {
+        //console.log('>>>>>>>>>>>>>>>>>pool.calculateBlockTemplateParameters')
         return { wallet_address: this.config.mining.address,
             reserve_size: 1 }
     }
 
     addBlockAndInformMiners (data, force = false) {
+        //console.log('>>>>>>>>>>>>>>>>>pool.addBlockAndInformMiners')
         try {
-            if (data.hasOwnProperty("error")) {
-                logger.log("error", "Error polling get_block_template %j", [data.error.message])
-                return data.error.message
-            }
-            const block = data.result
-
-            if (this.blocks == null || this.blocks.current == null || this.blocks.current.height < block.height || force) {
-                logger.log("info", "New block to mine { address: %s, height: %d, difficulty: %d, uniform: %s }", [this.address_abbr, block.height, block.difficulty, true])
+            if (this.blocks == null || this.blocks.current == null || this.blocks.current.height < data.height || force) {
+                logger.log("info", "New block to mine { address: %s, height: %d, difficulty: %d, uniform: %s }", [this.address_abbr, data.height, data.difficulty, true])
                 this.sendStatus(2)
-                this.blocks.current = new Block(this, block, false)
+                this.blocks.current = new Block(this, data, false)
 
                 this.blocks.valid.push(this.blocks.current)
 
@@ -648,19 +649,23 @@ export class Pool {
                 }
             }
         } catch (error) {}
-        return null
     }
 
-    getBlock (force = false) {
-        return new Promise(async(resolve, reject) => {
-            const getBlockTemplateData = await this.rpc.sendRPC("get_block_template", this.BlockTemplateParameters)
-            const result = this.addBlockAndInformMiners(getBlockTemplateData, force)
-            !result ? resolve() : reject(result)
-        })
+    async getBlock (force = false) {
+        //console.log('>>>>>>>>>>>>>>>>>pool.getBlock')
+        let result = {}
+        try {
+            const getBlockTemplateData = await this.rpcDaemon.getBlockTemplate(this.BlockTemplateParameters)
+            this.addBlockAndInformMiners(getBlockTemplateData, force)
+        }
+        catch (error) {
+            console.log(`pool.getBlock ${error}`)
+        }
+        return result
     }
 
     submitBlock (block) {
-        return this.rpc.sendRPC("submit_block", [block], false)
+        return this.rpcDaemon.submitBlock({blobs: block})
     }
 
     sendStatus (status) {
@@ -723,10 +728,6 @@ export class Pool {
             this.stop().then(() => {
                 if (this.intervals.stats) {
                     clearInterval(this.intervals.stats)
-                }
-                if (this.agent) {
-                    this.agent.destroy()
-                    this.agent = null
                 }
                 if (this.database) {
                     logger.log("warn", "Stopping database")

@@ -1,5 +1,4 @@
 import child_process from "child_process"
-import { connectableObservableDescriptor } from "rxjs/internal/observable/ConnectableObservable"
 const os = require("os")
 const fs = require("fs")
 const path = require("path")

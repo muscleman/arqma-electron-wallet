@@ -6,11 +6,8 @@
  *
  **/
 
-// const https = require("https")
-
-// const axios = require('axios');
-
-import { RPC } from './rpc'
+const axios = require('axios').default
+const https = require('https')
 
 export class Market {
     constructor (backend) {
@@ -18,10 +15,9 @@ export class Market {
         this.heartbeat_slow = null
         this.id = 0
 
-        // this.agent = new https.Agent({ keepAlive: true, maxSockets: 1 })
+        this.agent = new https.Agent({ keepAlive: true, maxSockets: 1 })
         this.options = null
         this.endpoint = "/api/v3/coins/arqma/tickers"
-        this.rpc = new RPC()
     }
 
     start (options) {
@@ -54,9 +50,20 @@ export class Market {
 
     async heartbeatSlowAction () {
         try {
-            let response = await this.rpc.callAPI({}, this.options.market.exchange)
+            
+            let requestOptions = {
+                url: `${this.options.market.exchange.protocol}${this.options.market.exchange.hostname}:${this.options.market.exchange.port}${this.options.market.exchange.endpoint}`,
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                },
+                agent: this.agent
+            }
+            // console.log(`market.heartbeatSlowAction ${JSON.stringify(requestOptions, null, '\t')}`)
+                          
+            let response = await axios(requestOptions)
             let data = []
-            for (let ticker of response.result.tickers) {
+            for (let ticker of response.data.tickers) {
                 let key = ticker.market.name
                 let symbol = ticker.target // btc
                 let label = `${key} ${symbol}`
