@@ -367,32 +367,24 @@ export class WalletRPC {
 
         this.sendGateway("reset_wallet_error")
         try {
-            let restorDeterministicWalletData = await this.rpcWallet.restoreDeterministicWallet({
+            await this.rpcWallet.restoreDeterministicWallet({
                 filename,
                 password,
                 seed,
                 restore_height
             })
-            // let restorDeterministicWalletData = await this.rpc.sendRPC_WithMD5("restore_deterministic_wallet", {
-            //     filename,
-            //     password,
-            //     seed,
-            //     restore_height
-            // })
-            if (restorDeterministicWalletData.hasOwnProperty("error")) {
-                this.sendGateway("set_wallet_error", { status: restorDeterministicWalletData.error })
-                return
-            }
-            
-            // store hash of the password so we can check against it later when requesting private keys, or for sending txs
-            this.wallet_state.password_hash = crypto.pbkdf2Sync(password, this.auth[2], 1000, 64, "sha512").toString("hex")
-            this.wallet_state.name = filename
-            this.wallet_state.open = true
-            
-            this.finalizeNewWallet(filename)
+
         } catch (error) {
             this.sendGateway("set_wallet_error", { status: error })
+            return
         }
+            
+        // store hash of the password so we can check against it later when requesting private keys, or for sending txs
+        this.wallet_state.password_hash = crypto.pbkdf2Sync(password, this.auth[2], 1000, 64, "sha512").toString("hex")
+        this.wallet_state.name = filename
+        this.wallet_state.open = true
+        
+        this.finalizeNewWallet(filename)
     }
 
     async restoreViewWallet (filename, password, address, viewkey, refresh_type, refresh_start_timestamp_or_height) {
@@ -1424,6 +1416,9 @@ try {
             }
 
             await this.saveWallet()
+        }
+        catch(error) {}
+        try {
             await this.rpcWallet.closeWallet()
         }
         catch(error) {}
@@ -1463,33 +1458,31 @@ try {
         })
     }
 
-    exportTransactions (params) {
+    async exportTransactions (params) {
         //console.log('>>>>>>>>>>>>>>>>>exportTransactions')
-        return new Promise((resolve, reject) => {
-            if (params.hasOwnProperty("export_path")) {
-                if (!fs.existsSync(params.export_path)) 
-                { 
-                    fs.mkdirSync(params.export_path) 
-                }
-                this.getTransactions(params.options)
-                    .then(data => {
-                        let filename = `transactions-${new Date().toISOString()}.csv`
-                        filename = filename.replace(/:\s*/g, ".")
-                        let csv = fs.createWriteStream(path.join(params.export_path, filename), { encoding: "utf8", flags: "wx" })
-                        if (params.header) { csv.write(params.headers) }
-                        for (const [key, transaction] of Object.entries(data.transactions.tx_list)) {
-                            csv.write(`${transaction.address},${transaction.amount / 1e9},${transaction.confirmations},${transaction.double_spend_seen},${transaction.fee / 1e9},${transaction.height},${transaction.note},${transaction.payment_id},${transaction.suggested_confirmations_threshold},${new Date(transaction.timestamp * 1000).toISOString()},${transaction.txid},${transaction.type},${transaction.unlock_time}\n`)
-                        }
-                        csv.end()
-                        resolve()
-                    })
-                    .catch(error => {
-                        reject(error)
-                    })
-            } else {
-                var reason = new Error("No export_path provided!")
-                reject(reason)
+        if (params.hasOwnProperty("export_path")) {
+            if (!fs.existsSync(params.export_path)) 
+            { 
+                fs.mkdirSync(params.export_path) 
             }
-        })
+            try {
+                const data = this.getTransactions(params.options)
+
+                let filename = `transactions-${new Date().toISOString()}.csv`
+                filename = filename.replace(/:\s*/g, ".")
+                let csv = fs.createWriteStream(path.join(params.export_path, filename), { encoding: "utf8", flags: "wx" })
+                if (params.header) { csv.write(params.headers) }
+                for (const [key, transaction] of Object.entries(data.transactions.tx_list)) {
+                    csv.write(`${transaction.address},${transaction.amount / 1e9},${transaction.confirmations},${transaction.double_spend_seen},${transaction.fee / 1e9},${transaction.height},${transaction.note},${transaction.payment_id},${transaction.suggested_confirmations_threshold},${new Date(transaction.timestamp * 1000).toISOString()},${transaction.txid},${transaction.type},${transaction.unlock_time}\n`)
+                }
+                csv.end()
+                return
+            }
+            catch(error) {
+                return error
+            }
+        } else {
+            return new Error("No export_path provided!")
+        }
     }
 }
