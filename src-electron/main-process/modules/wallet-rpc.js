@@ -61,8 +61,8 @@ export class WalletRPC {
                     "--rpc-login", this.auth[0] + ":" + this.auth[1],
                     "--rpc-bind-port", options.wallet.rpc_bind_port,
                     "--daemon-address", daemon_address,
-                    // "--log-level", options.wallet.log_level,
-                    "--log-level", "*:WARNING,net*:FATAL,net.http:DEBUG,global:INFO,verify:FATAL,stacktrace:INFO"
+                    "--log-level", options.wallet.log_level,
+                    // "--log-level", "*:WARNING,net*:FATAL,net.http:DEBUG,global:INFO,verify:FATAL,stacktrace:INFO"
                 ]
 
                 let log_file
@@ -84,7 +84,6 @@ export class WalletRPC {
                 }
 
                 if (fs.existsSync(log_file)) { fs.truncateSync(log_file, 0) }
-
                 if (process.platform === "win32") {
                     this.walletRPCProcess = child_process.spawn(path.join(__arqma_bin, "arqma-wallet-rpc.exe"), args)
                 } else {
@@ -110,7 +109,6 @@ export class WalletRPC {
                     process.stdout.write(`Wallet: ${data}`)
                     
                     let stringValue = data.toString()
-                    console.log('......', stringValue)
                     let lines = stringValue.split("\n")
                     let match, height = null
                     lines.forEach((line) => {
@@ -143,27 +141,13 @@ export class WalletRPC {
                 
                 // To let caller know when the wallet is ready
                 let intrvl = setInterval(async() => {
-                    // const getLanguagesData = await this.rpc.sendRPC_WithMD5("get_languages")
-                    let getLanguagesData = null
                     try {
-                        getLanguagesData = await this.rpcWallet.getLanguages()
-                    } catch (error) {
-                        getLanguagesData = {error: {cause: "ECONNREFUSED"}}
-                    }
-
-                    if (!getLanguagesData.hasOwnProperty("error")) {
+                        await this.rpcWallet.getLanguages()
                         clearInterval(intrvl)
                         resolve()
-                    } else {
-                        if (getLanguagesData.error.cause &&
-                            getLanguagesData.error.cause === "ECONNREFUSED") {
-                                // Ignore
-                            } else {
-                                clearInterval(intrvl)
-                                reject(getLanguagesData.error)
-                            }
-                        }
-                    }, 1000)
+
+                    } catch (error) {}
+                }, 1000)
             })
         })
     }
@@ -534,9 +518,10 @@ export class WalletRPC {
     }
 
     async openWallet (filename, password) {
-        //console.log('>>>>>>>>>>>>>>>>>openWallet')
         try {
+            //console.log('before>>>>>>>>>>>>>>>>>openWallet')
             await this.rpcWallet.openWallet({filename, password})
+            //console.log('after>>>>>>>>>>>>>>>>>openWallet')
         } catch(error) {
             this.sendGateway("set_wallet_error", { status: { code: -1, message: "Failed to open wallet" } })
             return
@@ -1396,7 +1381,6 @@ export class WalletRPC {
     quit () {
         return new Promise((resolve, reject) => {
             if (this.walletRPCProcess) {
-                console.log('closing at quit>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
                 this.closeWallet()
                 setTimeout(() => {
                     this.walletRPCProcess.on("close", code => {
