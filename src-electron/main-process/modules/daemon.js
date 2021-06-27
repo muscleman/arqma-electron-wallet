@@ -107,7 +107,6 @@ export class Daemon {
             this.hostname = options.daemons[options.app.net_type].remote_host
             this.port = options.daemons[options.app.net_type].remote_port
 
-            console.log('remote start<<<<<<<<<<<<<<<<<<createDaemonClient')
             this.rpcDaemon = rpcDaemon.createDaemonClient({url: `${this.protocol}${this.hostname}:${this.port}`})
 
             return new Promise(async(resolve, reject) => {
@@ -193,7 +192,6 @@ export class Daemon {
             this.daemonProcess.on("error", err => process.stderr.write(`Daemon: ${err}\n`))
             this.daemonProcess.on("close", code => process.stderr.write(`Daemon: exited with code ${code}\n`))
 
-            console.log(`local start<<<<<<<<<<<<<<<<<<createDaemonClient ${this.protocol}${this.hostname}:${this.port}`)
             try {
                 this.rpcDaemon = rpcDaemon.createDaemonClient({url: `${this.protocol}${this.hostname}:${this.port}`})
             } 
