@@ -197,6 +197,7 @@ export class Pool {
 
                     this.getBlock().then(() => {
                         clearInterval(this.intervals.startup)
+                        this.sendStatus(1)
                         this.startHeartbeat()
                         this.startServer().then(() => {
                             this.sendStatus(2)
@@ -634,19 +635,20 @@ export class Pool {
         try {
             if (this.blocks == null || this.blocks.current == null || this.blocks.current.height < data.height || force) {
                 logger.log("info", "New block to mine { address: %s, height: %d, difficulty: %d, uniform: %s }", [this.address_abbr, data.height, data.difficulty, true])
-                this.sendStatus(2)
                 this.blocks.current = new Block(this, data, false)
-
+                
                 this.blocks.valid.push(this.blocks.current)
-
+                
                 while (this.blocks.valid.length > 5) {
                     this.blocks.valid.shift()
                 }
-
+                
                 for (let connection_id in this.connections) {
                     const miner = this.connections[connection_id]
                     miner.pushJob(force)
                 }
+                this.statsHeartbeat()
+                this.sendStatus(2)
             }
         } catch (error) {}
     }

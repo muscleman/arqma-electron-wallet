@@ -297,6 +297,7 @@ export class Backend {
                 } else {
                     if (!this.config_data.pool.server.enabled && this.pool) {
                         this.pool.stop()
+                        this.send("set_pool_data", {status: 0 })
                     }
                 }
             })
@@ -479,6 +480,8 @@ export class Backend {
             this.walletd = new WalletRPC(this)
             if (this.config_data.pool.server.enabled)
                 this.pool = new Pool(this)
+            else
+                this.send("set_pool_data", {status: 0 })
             this.market = new Market(this)
 
             this.send("set_app_data", {
@@ -576,6 +579,9 @@ export class Backend {
                                     if (this.pool) {
                                         this.pool.init(this.config_data)
                                         this.isPoolInitialized = true
+                                    }
+                                    else {
+                                        this.send("set_pool_data", {status: 0 })
                                     }
                                     this.send("set_app_data", {
                                         status: {
