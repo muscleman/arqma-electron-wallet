@@ -97,7 +97,7 @@ export class WalletRPC {
                 this.hostname = "127.0.0.1"
                 this.port = options.wallet.rpc_bind_port
 
-                //this.rpc = new RPC(this.protocol, this.hostname, this.port).setAuthorization(this.auth[0], this.auth[1])
+
 
                 this.rpcWallet = rpcWallet.createWalletClient({
                     url: `${this.protocol}${this.hostname}:${this.port}`,

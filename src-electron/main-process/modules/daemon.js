@@ -1,9 +1,11 @@
 import child_process from "child_process"
-import { RPC } from "./rpc"
 const fs = require("fs")
 const path = require("path")
 const zmq = require("zeromq")
 const { fromEvent } = require("rxjs")
+const rpcDaemon = require('@arqma/arqma-rpc').RPCDaemon
+const axios = require('axios').default
+const https = require('https')
 
 export class Daemon {
     constructor (backend) {
@@ -44,29 +46,33 @@ export class Daemon {
     }
 
     async checkRemoteHeight () {
+        // console.log('>>>>>>>>>>>>>>>>>checkRemoteHeight')
         let options = {
-            protocol: "https://",
-            hostname: "explorer.arqma.com",
-            endpoint: "/api/networkinfo"
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            },
+            agent: new https.Agent({ keepAlive: true, maxSockets: 1}),
+            url: "https://explorer.arqma.com/api/networkinfo"
         }
         if (this.testnet) {
-            options.hostname = "stageblocks.arqma.com"
+            options.url = "https://stageblocks.arqma.com/api/networkinfo"
         }
-        const getInfoData = await this.rpc.callAPI({}, options)
         try {
-            if (getInfoData === null || typeof getInfoData !== "object" || !getInfoData.hasOwnProperty("data")) {
-                return
-            }
-            if (getInfoData.data.hasOwnProperty("height") && this.blocks.current != null) {
+            const getInfoData = await axios(requestOptions)
+            if (this.blocks.current)
                 this.remote_height = getInfoData.data.height
-            }
-            this.remote_height = 0
-        } catch (error) {
+            else
+                this.remote_height = 0
+        }
+        catch (error) {
+            console.log(`daemon.checkRemoteHeight ${error}`)
             this.remote_height = 0
         }
     }
 
     checkRemoteDaemon (options) {
+        //console.log('>>>>>>>>>>>>>>>>>checkRemoteDaemon')
         if (options.daemon.type === "local") {
             return new Promise((resolve, reject) => {
                resolve({
@@ -77,13 +83,20 @@ export class Daemon {
                })
             })
         } else {
-            this.rpc = new RPC()
-            let uri = `http://${options.daemons[options.app.net_type].remote_host}:${options.daemons[options.app.net_type].remote_port}/json_rpc`
-             return this.rpc.sendRPC("get_info", {}, uri)
+            try {
+                let url = `http://${options.daemons[options.app.net_type].remote_host}:${options.daemons[options.app.net_type].remote_port}`
+                let remoteDaemon = rpcDaemon.createDaemonClient({url})
+                return remoteDaemon.getInfo()
+            }
+            catch (error) {
+                console.log(`daemon.checkRemoteDaemon ${error}`)
+                return {}
+            }
         }
     }
 
     start (options) {
+        //console.log('>>>>>>>>>>>>>>>>>start')
         if (options.daemon.type === "remote") {
             this.local = false
             
@@ -93,16 +106,20 @@ export class Daemon {
             // this.port = options.daemon.remote_port
             this.hostname = options.daemons[options.app.net_type].remote_host
             this.port = options.daemons[options.app.net_type].remote_port
-            this.rpc = new RPC(this.protocol, this.hostname, this.port)
+
+            console.log('remote start<<<<<<<<<<<<<<<<<<createDaemonClient')
+            this.rpcDaemon = rpcDaemon.createDaemonClient({url: `${this.protocol}${this.hostname}:${this.port}`})
 
             return new Promise(async(resolve, reject) => {
-                const getInfoData = await this.rpc.sendRPC("get_info")
-                if (!getInfoData.hasOwnProperty("error")) {
+                try {
+                    await this.rpcDaemon.getInfo()
                     this.startHeartbeat()
                     resolve()
-                } else {
+                }
+                catch (error) {
                     reject()
                 }
+                return
             })
         }
         return new Promise((resolve, reject) => {
@@ -176,26 +193,26 @@ export class Daemon {
             this.daemonProcess.on("error", err => process.stderr.write(`Daemon: ${err}\n`))
             this.daemonProcess.on("close", code => process.stderr.write(`Daemon: exited with code ${code}\n`))
 
-            this.rpc = new RPC(this.protocol, options.daemon.rpc_bind_ip, options.daemon.rpc_bind_port)
+            console.log(`local start<<<<<<<<<<<<<<<<<<createDaemonClient ${this.protocol}${this.hostname}:${this.port}`)
+            try {
+                this.rpcDaemon = rpcDaemon.createDaemonClient({url: `${this.protocol}${this.hostname}:${this.port}`})
+            } 
+            catch (error) {
+                console.log(`daemon.start ${error}`)
+            }
+
             if (options.daemon.type !== "local_zmq") {
                 this.daemonProcess.stdout.on("data", data => process.stdout.write(`Daemon: ${data}`))
 
                 // To let caller know when the daemon is ready
                 let intrvl = setInterval(async() => {
-                    const getInfoData = await this.rpc.sendRPC("get_info")
-                    if (!getInfoData.hasOwnProperty("error")) {
+                    try {
+                        const result = await this.rpcDaemon.getInfo()
                         clearInterval(intrvl)
                         this.startHeartbeat()
                         resolve()
-                    } else {
-                        if (getInfoData.error.cause &&
-                            getInfoData.error.cause === "ECONNREFUSED") {
-                            // Ignore
-                        } else {
-                            clearInterval(intrvl)
-                            reject(error)
-                        }
                     }
+                    catch (error) {}
                 }, 2000)
             } else {
                 this.checkRemoteHeight()
@@ -264,6 +281,7 @@ export class Daemon {
     }
 
     async banPeer (host, seconds = 3600) {
+        // console.log('>>>>>>>>>>>>>>>>>banPeer')
         if (!seconds) { seconds = 3600 }
 
         let params = {
@@ -274,8 +292,10 @@ export class Daemon {
             }]
         }
 
-        const setBansData = await this.rpc.sendRPC("set_bans", params)
-        if (setBansData.hasOwnProperty("error") || !setBansData.hasOwnProperty("result")) {
+        try {
+            await this.rpcDaemon.setBans(params)
+        }
+        catch (error) {
             this.sendGateway("show_notification", { type: "negative", message: "Error banning peer", timeout: 2000 })
             return
         }
@@ -288,6 +308,7 @@ export class Daemon {
     }
 
     timestampToHeight (timestamp, pivot = null, recursion_limit = null) {
+        // console.log('>>>>>>>>>>>>>>>>>timestampToHeight')
         return new Promise(async(resolve, reject) => {
             if (timestamp > 999999999999) {
                 // We have got a JS ms timestamp, convert
@@ -308,27 +329,19 @@ export class Daemon {
                 return resolve(pivot[0])
             }
 
-            const blockHeaderByHeightData = await this.rpc.sendRPC("get_block_header_by_height", { height: estimated_height })
-            if (blockHeaderByHeightData.hasOwnProperty("error") || !blockHeaderByHeightData.hasOwnProperty("result")) {
-                if (blockHeaderByHeightData.error.code === -2) { // Too big height
-                    const getLastBlockHeaderData = await this.rpc.sendRPC("get_last_block_header")
-                    if (getLastBlockHeaderData.hasOwnProperty("error") || !getLastBlockHeaderData.hasOwnProperty("result")) {
-                        return reject()
-                    }
-
-                    let new_pivot = [blockHeaderByHeightData.result.block_header.height, blockHeaderByHeightData.result.block_header.timestamp]
-
-                    // If we are within an hour that is good enough
-                    // If for some reason there is a > 1h gap between blocks
-                    // the recursion limit will take care of infinite loop
-                    if (Math.abs(timestamp - new_pivot[1]) < 3600) {
-                        return resolve(new_pivot[0])
-                    }
-
-                    // Continue recursion with new pivot
-                    resolve(new_pivot)
-                    return
-                } else {
+            let blockHeaderByHeightData = {}
+            let failed = false
+            try {
+                blockHeaderByHeightData = await this.rpcDaemon.getBlockHeaderByHeight({ height: estimated_height })
+            }
+            catch (error) {
+                failed = true
+            }
+            if (failed) {
+                try {
+                blockHeaderByHeightData = await this.rpcDaemon.getLastBlockHeader()
+                }
+                catch (error) {
                     return reject()
                 }
             }
@@ -362,57 +375,41 @@ export class Daemon {
         await this.heartbeatAction()
     }
 
-    async heartbeatAction () {
+    async heartbeatAction () {   
+        // console.log('>>>>>>>>>>>>>>>>>heartbeatAction')
+        let daemon_info = {}
         try {
-            let heartBeatActionData = []
-            
-            // No difference between local and remote heartbeat action for now
-            if (this.local) {
-                heartBeatActionData = [
-                    await this.rpc.sendRPC("get_info")
-                ]
-            } else {
-                heartBeatActionData = [
-                    await this.rpc.sendRPC("get_info")
-                ]
-            }
-           
-            let daemon_info = {}
-
-            for (let n of heartBeatActionData) {
-                if (n === undefined || !n.hasOwnProperty("result") || n.result === undefined) { continue }
-                if (n.method === "get_info") {
-                    daemon_info.info = n.result
-                    this.daemon_info = n.result
-                }
-            }
-            this.sendGateway("set_daemon_data", daemon_info)
-        } catch (error) {
+            daemon_info.info = await this.rpcDaemon.getInfo()
+            this.daemon_info = daemon_info.info
         }
+        catch (error) {
+            console.log(error)
+        }
+
+        this.sendGateway("set_daemon_data", daemon_info)
     }
 
     async heartbeatSlowAction (daemon_info = {}) {
-        let heartbeatSlowActionData = []
-        if (this.local) {
-            heartbeatSlowActionData = [
-                await this.rpc.sendRPC("get_connections"),
-                await this.rpc.sendRPC("get_bans")
-            ]
-        } else {
-            heartbeatSlowActionData = []
-        }
-
-        if (!heartbeatSlowActionData || heartbeatSlowActionData.length === 0) return
-
-        for (let n of heartbeatSlowActionData) {
-            if (n === undefined || !n.hasOwnProperty("result") || n.result === undefined) { continue }
-            if (n.method === "get_connections" && n.result.hasOwnProperty("connections")) {
-                daemon_info.connections = n.result.connections
-            } else if (n.method === "get_bans" && n.result.hasOwnProperty("bans")) {
-                daemon_info.bans = n.result.bans
-            } else if (n.method === "get_txpool_backlog" && n.result.hasOwnProperty("backlog")) {
-                daemon_info.tx_pool_backlog = n.result.backlog
+        // console.log('>>>>>>>>>>>>>>>>>heartbeatSlowAction')
+        try {
+            let heartbeatSlowActionData = []
+            if (this.local) {
+                heartbeatSlowActionData = [
+                    await this.rpcDaemon.getConnections(),
+                    await this.rpcDaemon.getBans()
+                ]
+            } 
+            // console.log(JSON.stringify(heartbeatSlowActionData, null, '\t'))
+            for (let n of heartbeatSlowActionData) {
+                if ('connections' in n) {
+                    daemon_info.connections = n.connections
+                } else if ('bans' in n ) {
+                    daemon_info.bans = n.bans
+                } 
             }
+        }
+        catch (error) {
+            
         }
         this.sendGateway("set_daemon_data", daemon_info)
     }
@@ -423,6 +420,7 @@ export class Daemon {
     }
 
     quit () {
+        // console.log('>>>>>>>>>>>>>>>>>quit')
         // TODO force close after few seconds!
         clearInterval(this.heartbeat)
         if (this.zmq_enabled && this.dealer) {
