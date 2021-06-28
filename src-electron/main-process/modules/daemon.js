@@ -56,7 +56,7 @@ export class Daemon {
             url: "https://explorer.arqma.com/api/networkinfo"
         }
         if (this.stagenet) {
-            options.url = "https://stageblocks.arqma.com/api/networkinfo"
+            options.url = "https://stagenet.arqma.com/api/networkinfo"
         }
         try {
             const getInfoData = await axios(requestOptions)

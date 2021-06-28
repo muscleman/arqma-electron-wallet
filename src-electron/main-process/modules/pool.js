@@ -222,7 +222,7 @@ export class Pool {
     checkHeight () {
         let url = "https://explorer.arqma.com/api/networkinfo"
         if (this.stagenet) {
-            url = "https://stageblocks.arqma.com/api/networkinfo"
+            url = "https://stagenet.arqma.com/api/networkinfo"
         }
         return axios.get(url)
     }
