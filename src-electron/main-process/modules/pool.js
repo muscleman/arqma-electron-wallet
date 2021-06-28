@@ -34,20 +34,20 @@ export class Pool {
             stats: null
         }
 
-        const { data_dir, testnet } = backend.config_data.app
+        const { data_dir, stagenet } = backend.config_data.app
 
-        this.testnet = testnet
+        this.stagenet = stagenet
 
-        if (testnet) {
+        if (stagenet) {
             this.nettype = ryo_utils_nettype.network_type.TESTNET
-            logger.setLogFile(join(data_dir, "testnet", "logs"), "pool.log")
+            logger.setLogFile(join(data_dir, "stagenet", "logs"), "pool.log")
         } else {
             this.nettype = ryo_utils_nettype.network_type.MAINNET
             logger.setLogFile(join(data_dir, "logs"), "pool.log")
         }
         logger.log("info", "Logger initialized")
 
-        this.database = new Database(this, { testnet, data_dir })
+        this.database = new Database(this, { stagenet, data_dir })
 
         ryo_utils_promise.then(core_bridge => {
             this.core_bridge = core_bridge
@@ -221,8 +221,8 @@ export class Pool {
 
     checkHeight () {
         let url = "https://explorer.arqma.com/api/networkinfo"
-        if (this.testnet) {
-            url = "https://stageblocks.arqma.com/api/networkinfo"
+        if (this.stagenet) {
+            url = "https://stagenet.arqma.com/api/networkinfo"
         }
         return axios.get(url)
     }
