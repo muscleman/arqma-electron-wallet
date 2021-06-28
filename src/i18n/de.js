@@ -220,7 +220,7 @@ export default {
         rescanSpentOutputs: "Spent Outputs erneut scannen",
         transactionNotes: "Transaktionsnotizen",
         network: "Netzwerk",
-        testnet: "Testnet verwenden"
+        stagenet: "Stagenet verwenden"
     },
     footer: {
         ready: "FERTIG",
