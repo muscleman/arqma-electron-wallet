@@ -18,16 +18,15 @@
     "dev": "quasar dev -m electron -t mat",
     "build": "quasar build -m electron -t mat",
     "lint": "eslint --ext .js,.vue src",
-    "rebuild": "electron-rebuild -f -w better-sqlite3",
     "lint-fix": "eslint --fix .",
     "test": "echo \"No test specified\" && exit 0",
-    "postinstall": "npx electron-rebuild"
+    "postinstall": "npx electron-rebuild -f -w zeromq"
   },
   "dependencies": {
+    "better-sqlite3": "^7.4.1",
     "@arqma/arqma-rpc": "^0.2.2",
     "acorn": "^8.2.4",
     "axios": "^0.21.1",
-    "better-sqlite3": "7.4.1",
     "big-integer": "^1.6.41",
     "buffer": "^6.0.3",
     "bufferutil": "^4.0.3",
