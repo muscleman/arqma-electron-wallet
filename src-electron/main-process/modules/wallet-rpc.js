@@ -850,20 +850,25 @@ export class WalletRPC {
                 params.payment_id = payment_id
             }
             let transferData = {}
-            if (sweep_all) {
-                transferData = await this.rpcWallet.sweepAll(params)
-            } else {
-                transferData = await this.rpcWallet.transferSplit(params)
+            try {
+                if (sweep_all) {
+                    transferData = await this.rpcWallet.sweepAll(params)
+                } else {
+                    transferData = await this.rpcWallet.transferSplit(params)
+                }
             }
-            // const transferData = await this.rpc.sendRPC_WithMD5(rpc_endpoint, params)
-            if (transferData.hasOwnProperty("error")) {
-                let error = transferData.error.message.charAt(0).toUpperCase() + transferData.error.message.slice(1)
-                this.sendGateway("set_tx_status", {
-                    code: -1,
-                    message: error,
-                    sending: false
-                })
-                return
+            catch (error) {
+                console.log(`wallet_rpc.transfer sweep_all = ${sweep_all} ${error}`)
+                // if (transferData.hasOwnProperty("error")) {
+                    //let error = transferData.error.message.charAt(0).toUpperCase() + transferData.error.message.slice(1)
+                    this.sendGateway("set_tx_status", {
+                        code: -1,
+                        message: "WTF SOMTHING BLEW UP ",
+                        sending: false
+                    })
+                    return
+                // }
+
             }
             this.sendGateway("set_tx_status", {
                 code: 0,
@@ -900,22 +905,25 @@ export class WalletRPC {
             message: ""
         })
         let proveTransactionData = {}
-        if (_address)
-            proveTransactionData = await this.rpcWallet.checkSpendProof(params)
-        else
-            proveTransactionData = await this.rpcWallet.getSpendProof(params)
-
-        // let proveTransactionData = await this.rpc.sendRPC_WithMD5(rpc_endpoint, params)
-        if (proveTransactionData.hasOwnProperty("error")) {
-            let error = proveTransactionData.error.message.charAt(0).toUpperCase() + proveTransactionData.error.message.slice(1)
-            this.sendGateway("set_prove_transaction_status", {
-                code: -1,
-                message: error,
-                state: {}
-            })
-            return
+        try {
+            if (_address)
+                proveTransactionData = await this.rpcWallet.checkSpendProof(params)
+            else
+                proveTransactionData = await this.rpcWallet.getSpendProof(params)
         }
-
+        catch (error) {
+            console.log(`wallet_rpc.proveTransaction address = ${_address} ${error}`)
+            // let proveTransactionData = await this.rpc.sendRPC_WithMD5(rpc_endpoint, params)
+            // if (proveTransactionData.hasOwnProperty("error")) {
+                // let error = proveTransactionData.error.message.charAt(0).toUpperCase() + proveTransactionData.error.message.slice(1)
+                this.sendGateway("set_prove_transaction_status", {
+                    code: -1,
+                    message: "WTF SOMTHING BLEW UP ",
+                    state: {}
+                })
+                return
+            // }
+        }
         this.sendGateway("set_prove_transaction_status", {
             code: 0,
             message: "",
@@ -944,22 +952,25 @@ export class WalletRPC {
             message: ""
         })
         let checkTransactionProofData = {}
-        if (_address)
-            checkTransactionProofData = await this.rpcWallet.checkSpendProof(params)
-        else
-            checkTransactionProofData = await this.rpcWallet.getSpendProof(params)
-
-        // let checkTransactionProofData = await this.rpc.sendRPC_WithMD5(rpc_endpoint, params)
-        if (checkTransactionProofData.hasOwnProperty("error")) {
-            let error = checkTransactionProofData.error.message.charAt(0).toUpperCase() + checkTransactionProofData.error.message.slice(1)
+        try {
+            if (_address)
+                checkTransactionProofData = await this.rpcWallet.checkSpendProof(params)
+            else
+                checkTransactionProofData = await this.rpcWallet.getSpendProof(params)
+            }
+        catch (error) {
+            console.log(`wallet_rpc.checkTransactionProof address = ${_address} ${error}`)
+            // let checkTransactionProofData = await this.rpc.sendRPC_WithMD5(rpc_endpoint, params)
+            //if (checkTransactionProofData.hasOwnProperty("error")) {
+            //let error = checkTransactionProofData.error.message.charAt(0).toUpperCase() + checkTransactionProofData.error.message.slice(1)
             this.sendGateway("set_check_transaction_status", {
                 code: -1,
-                message: error,
+                message: "WTF SOMTHING BLEW UP ",
                 state: {}
             })
             return
+            //}
         }
-
         this.sendGateway("set_check_transaction_status", {
             code: 0,
             message: "",
