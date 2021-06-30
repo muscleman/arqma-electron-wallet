@@ -142,7 +142,7 @@ export default {
         },
         transfer: {
             title: "传递",
-            message: "您要发送交易吗？",
+            message: "輸入您的錢包密碼以發送交易",
             ok: "发送"
         },
         unlockConfirm: {

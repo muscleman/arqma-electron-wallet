@@ -141,7 +141,7 @@ export default {
         },
         transfer: {
             title: "Transferieren",
-            message: "Möchtest du die Transaktion senden?",
+            message: "Geben Sie Ihr Wallet-Passwort ein, um Transaktionen zu senden",
             ok: "SENDEN"
         },
         unlockConfirm: {

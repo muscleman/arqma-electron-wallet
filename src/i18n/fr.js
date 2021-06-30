@@ -142,7 +142,7 @@ export default {
         },
         transfer: {
             title: "Transfert",
-            message: "Voulez-vous envoyer la transaction ?",
+            message: "Saisissez le mot de passe de votre portefeuille pour envoyer des transactions",
             ok: "ENVOYER"
         },
         unlockConfirm: {

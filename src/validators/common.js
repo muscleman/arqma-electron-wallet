@@ -25,6 +25,9 @@ export const address = (input) => {
                     case "aRi":
                         resolve(input.length === 109)
                         break
+                    case "asi":
+                        resolve(input.length === 109)
+                        break
                     case "ar2":
                         resolve(input.length === 97)
                         break
@@ -37,7 +40,21 @@ export const address = (input) => {
                     case "ar5":
                         resolve(input.length === 97)
                         break
+                    case "as2":
+                        resolve(input.length === 97)
+                        break
+                    case "as3":
+                        resolve(input.length === 97)
+                        break
+                    case "as4":
+                        resolve(input.length === 97)
+                        break
+                    case "as5":
+                        resolve(input.length === 97)
+                        break
                     case "aRS":
+                        resolve(input.length === 98)
+                    case "ass":
                         resolve(input.length === 98)
                         break
 

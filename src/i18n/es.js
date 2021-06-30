@@ -142,7 +142,7 @@ export default {
         },
         transfer: {
             title: "Transferir",
-            message: "¿Desea enviar la transacción?",
+            message: "Ingrese la contraseña de su billetera para enviar transacciones",
             ok: "ENVIAR"
         },
         unlockConfirm: {
