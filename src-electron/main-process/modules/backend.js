@@ -73,19 +73,19 @@ export class Backend {
                 remote_host: "eu.supportarqma.com",
                 remote_port: 19994
             },
-            stagenet: {
+            testnet: {
                 ...daemon,
                 type: "local",
-                p2p_bind_port: 39993,
-                rpc_bind_port: 39994,
-                zmq_bind_port: 39995
+                p2p_bind_port: 29993,
+                rpc_bind_port: 29994,
+                zmq_bind_port: 29995
             },
             stagenet: {
                 ...daemon,
                 type: "local",
                 p2p_bind_port: 39993,
                 rpc_bind_port: 39994,
-                zmq_bind_port: 29995
+                zmq_bind_port: 39995
             }
         }
 
@@ -510,7 +510,7 @@ export class Backend {
 
                 this.market.start(this.config_data)
                 .then(() => {
-                    
+
                 })
                 .catch(error => {
                 })
@@ -518,7 +518,7 @@ export class Backend {
                     .then((data) => {
 
                         console.log(data)
-                        
+
                         if (data.hasOwnProperty("error")) {
                             // error contacting remote daemon
 

@@ -141,7 +141,7 @@ export default {
         },
         transfer: {
             title: "تحويل ",
-            message: "هل تريد إرسال المعاملة؟",
+            message: "أدخل كلمة مرور محفظتك لإرسال المعاملات",
             ok: "إرسال"
         },
         unlockConfirm: {

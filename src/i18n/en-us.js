@@ -141,7 +141,7 @@ export default {
         },
         transfer: {
             title: "Transfer",
-            message: "Do you want to send the transaction?",
+            message: "Enter wallet password to send transaction?",
             ok: "SEND"
         },
         unlockConfirm: {

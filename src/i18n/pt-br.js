@@ -142,7 +142,7 @@ export default {
         },
         transfer: {
             title: "Transferir",
-            message: "Deseja enviar a transação?",
+            message: "Digite a senha da carteira para enviar transações",
             ok: "ENVIAR"
         },
         unlockConfirm: {
