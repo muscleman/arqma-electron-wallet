@@ -1166,14 +1166,15 @@ export class WalletRPC {
             }
         }
         let getAddressBookData = {}
-        try {
-            // muscleman NOTE: electron wallet will need to track entries array or this won't work.
-            getAddressBookData = await this.rpcWallet.getAddressBook({entries: [0]})
-        } 
-        catch (error) {
-            console.log(`wallet-rpc.getAddressBook ${error}`)
-            return getAddressBookData
-        }
+        /*FIX ME!!!!!*/
+        // try {
+        //     // muscleman NOTE: electron wallet will need to track entries array or this won't work.
+        //     getAddressBookData = await this.rpcWallet.getAddressBook({entries: [0]})
+        // } 
+        // catch (error) {
+        //     console.log(`wallet-rpc.getAddressBook ${error}`)
+        //     return getAddressBookData
+        // }
 
         if (getAddressBookData.entries) {
             for (let i = 0; i < getAddressBookData.entries.length; i++) {

@@ -377,7 +377,7 @@ export class Daemon {
     }
 
     async heartbeatAction () {   
-        console.log('>>>>>>>>>>>>>>>>>heartbeatAction')
+        // console.log('>>>>>>>>>>>>>>>>>heartbeatAction')
         let daemon_info = {}
         try {
             daemon_info.info = await this.rpcDaemon.getInfo()
