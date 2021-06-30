@@ -895,7 +895,7 @@ export class WalletRPC {
         const _address = address.trim() === "" ? null : address
         const _message = message.trim() === "" ? null : message
 
-        const rpc_endpoint = _address ? "get_tx_proof" : "get_spend_proof"
+        // const rpc_endpoint = _address ? "get_tx_proof" : "get_spend_proof"
         const params = {
             txid,
             address: _address,
@@ -909,7 +909,7 @@ export class WalletRPC {
         let proveTransactionData = {}
         try {
             if (_address)
-                proveTransactionData = await this.rpcWallet.checkSpendProof(params)
+                proveTransactionData = await this.rpcWallet.checkTxProof(params)
             else
                 proveTransactionData = await this.rpcWallet.getSpendProof(params)
         }
@@ -941,7 +941,6 @@ export class WalletRPC {
         const _address = address.trim() === "" ? null : address
         const _message = message.trim() === "" ? null : message
 
-        const rpc_endpoint = _address ? "check_tx_proof" : "check_spend_proof"
         const params = {
             txid,
             signature,
@@ -956,13 +955,12 @@ export class WalletRPC {
         let checkTransactionProofData = {}
         try {
             if (_address)
-                checkTransactionProofData = await this.rpcWallet.checkSpendProof(params)
+                checkTransactionProofData = await this.rpcWallet.checkTxProof(params)
             else
                 checkTransactionProofData = await this.rpcWallet.getSpendProof(params)
             }
         catch (error) {
             console.log(`wallet_rpc.checkTransactionProof address = ${_address} ${error}`)
-            // let checkTransactionProofData = await this.rpc.sendRPC_WithMD5(rpc_endpoint, params)
             //if (checkTransactionProofData.hasOwnProperty("error")) {
             //let error = checkTransactionProofData.error.message.charAt(0).toUpperCase() + checkTransactionProofData.error.message.slice(1)
             this.sendGateway("set_check_transaction_status", {
