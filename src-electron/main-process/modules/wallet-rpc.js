@@ -833,11 +833,8 @@ export class WalletRPC {
             amount = (parseFloat(amount) * 1e9).toFixed(0)
 
             let sweep_all = amount === this.wallet_state.unlocked_balance
-
-            if (payment_id) {
-                params.payment_id = payment_id
-            }
             let transferData = {}
+            let params = {}
             try {
                 if (sweep_all) {
                     params = {
