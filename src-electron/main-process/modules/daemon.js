@@ -72,7 +72,7 @@ export class Daemon {
     }
 
     checkRemoteDaemon (options) {
-        //console.log('>>>>>>>>>>>>>>>>>checkRemoteDaemon')
+        // console.log('>>>>>>>>>>>>>>>>>checkRemoteDaemon')
         if (options.daemon.type === "local") {
             return new Promise((resolve, reject) => {
                resolve({
@@ -377,14 +377,14 @@ export class Daemon {
     }
 
     async heartbeatAction () {   
-        // console.log('>>>>>>>>>>>>>>>>>heartbeatAction')
+        console.log('>>>>>>>>>>>>>>>>>heartbeatAction')
         let daemon_info = {}
         try {
             daemon_info.info = await this.rpcDaemon.getInfo()
             this.daemon_info = daemon_info.info
         }
         catch (error) {
-            console.log(error)
+            console.log(`daemon.heartbeatAction ${error}`)
         }
 
         this.sendGateway("set_daemon_data", daemon_info)
