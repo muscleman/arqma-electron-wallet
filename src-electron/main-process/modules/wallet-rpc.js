@@ -609,6 +609,95 @@ export class WalletRPC {
         }
         let data = []
 
+/* WORK IN PROGRESS: DON"T DELETE
+        try {
+            let addressData = await this.rpcWallet.getAddress({ account_index: 0 })
+            wallet.info.address = addressData.address
+            this.sendGateway("set_wallet_data", {
+                info: {
+                    address: addressData.address
+                }
+            })
+        }
+        catch (error) {
+            console.log(`wallet_rpc.heartbeatAction getAddress ${error}`)
+        }
+
+        try {
+            let heightData = await this.rpcWallet.getHeight()
+            wallet.info.height = heightData.height
+            this.sendGateway("set_wallet_data", {
+                info: {
+                    height: heightData.height
+                }
+            })
+        }
+        catch (error) {
+            console.log(`wallet_rpc.finalizeNewWallet getheight ${error}`)
+        }
+
+        try {
+            const balanceData = await this.rpcWallet.getBalance({ account_index: 0 })
+             if (this.wallet_state.balance === balanceData.balance &&
+                this.wallet_state.unlocked_balance === balanceData.unlocked_balance) {
+                // continue
+            }
+
+            this.wallet_state.balance = wallet.info.balance = balanceData.balance
+            this.wallet_state.unlocked_balance = wallet.info.unlocked_balance = balanceData.unlocked_balance
+            this.sendGateway("set_wallet_data", {
+                info: wallet.info
+            })
+
+        }
+        catch (error) {
+            console.log(`wallet_rpc.finalizeNewWallet getBalance ${error}`)
+        }
+
+
+        try {
+            let transactionData = await this.getTransactions()
+            // wallet.info.height = transactionData.?
+            // this.sendGateway("set_wallet_data", {
+            //     info: {
+            //         height: heightData.height
+            //     }
+            // })
+        }
+        catch (error) {
+            console.log(`wallet_rpc.finalizeNewWallet getTransactions ${error}`)
+        }
+
+        try {
+            let addressListData = await this.getAddressList()
+            // wallet.info.height = addressListData.?
+            // this.sendGateway("set_wallet_data", {
+            //     info: {
+            //         height: heightData.height
+            //     }
+            // })
+        }
+        catch (error) {
+            console.log(`wallet_rpc.finalizeNewWallet getAddressList ${error}`)
+        }
+
+        try {
+            let addressBookData = await this.getAddressBook()
+            // wallet.info.height = addressBookData.?
+            // this.sendGateway("set_wallet_data", {
+            //     info: {
+            //         height: heightData.height
+            //     }
+            // })
+        }
+        catch (error) {
+            console.log(`wallet_rpc.finalizeNewWallet addressBookData ${error}`)
+        }
+        
+
+*/
+
+
         try {
             data.push(await this.rpcWallet.getAddress({ account_index: 0 }))
             data.push(await this.rpcWallet.getHeight())
@@ -677,7 +766,6 @@ export class WalletRPC {
                         actions.push(await this.getTransactions())
                         actions.push(await this.getAddressList())
                     } catch (error) {
-                        console.log(error, 'mofo!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
                     }
 
                     try {
@@ -685,12 +773,10 @@ export class WalletRPC {
                             actions.push(await this.getAddressBook())
                         }
                     } catch (error) {
-                        //console.log(error, 'mofo!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!getAddressBook')
                     }
                     Promise.all(actions).then((data) => {
                         try {
                             if (data) {
-                                //console.log('wallet>>>>>>>>>>>>>>', data, 'fuck')
                                 for (let n of data) {
                                     Object.keys(n).map(key => {
                                         wallet[key] = Object.assign(wallet[key], n[key])
@@ -710,7 +796,6 @@ export class WalletRPC {
         }
         catch(error) {
             didError = true
-            //console.log(error, 'wtf###################################')
         }
 
         // Set the wallet state on initial heartbeat
@@ -1082,14 +1167,8 @@ export class WalletRPC {
         }
         let getAddressBookData = {}
         try {
-            const subaddresses = await this.rpcWallet.getAccounts()
-            if (subaddresses.subaddress_accounts.length === 1) {
-                return getAddressBookData
-            }
-            const entries = subaddresses.subaddress_accounts.map(subAddress => {
-                return subAddress.account_index
-            })
-            getAddressBookData = await this.rpcWallet.getAddressBook({entries})
+            // muscleman NOTE: electron wallet will need to track entries array or this won't work.
+            getAddressBookData = await this.rpcWallet.getAddressBook({entries: [0]})
         } 
         catch (error) {
             console.log(`wallet-rpc.getAddressBook ${error}`)
@@ -1177,13 +1256,15 @@ export class WalletRPC {
         params.description = desc.join("::")
 
         try {
-        await this.rpcWallet.addAddressBook(params)
+            const addAddressBookData = await this.rpcWallet.addAddressBook(params)
+            console.log(addAddressBookData)
         }
         catch (error) {
             console.log(`wallet-rpc.addAddressBook ${error}`)
         }
         await this.saveWallet()
         const getAddressBookData = await this.getAddressBook()
+        console.log(getAddressBookData, '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,')
         this.sendGateway("set_wallet_data", getAddressBookData)
     }
 
