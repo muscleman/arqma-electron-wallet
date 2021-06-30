@@ -834,26 +834,31 @@ export class WalletRPC {
 
             let sweep_all = amount === this.wallet_state.unlocked_balance
 
-            // const rpc_endpoint = sweep_all ? "sweep_all" : "transfer_split"
-            const params = sweep_all ? {
-                "address": address,
-                "account_index": 0,
-                "priority": priority,
-                "mixin": 10 // Always force a ring size of 10 (ringsize = mixin + 1)
-            } : {
-                "destinations": [{ "amount": amount, "address": address }],
-                "priority": priority,
-                "mixin": 10
-            }
-
             if (payment_id) {
                 params.payment_id = payment_id
             }
             let transferData = {}
             try {
                 if (sweep_all) {
+                    params = {
+                        "address": address,
+                        "account_index": 0,
+                        "priority": priority,
+                        "mixin": 10 // Always force a ring size of 10 (ringsize = mixin + 1)
+                    }
+                    if (payment_id) {
+                        params.payment_id = payment_id
+                    }
                     transferData = await this.rpcWallet.sweepAll(params)
                 } else {
+                    params = {
+                        "destinations": [{ "amount": amount, "address": address }],
+                        "priority": priority,
+                        "mixin": 10
+                    }
+                    if (payment_id) {
+                        params.payment_id = payment_id
+                    }
                     transferData = await this.rpcWallet.transferSplit(params)
                 }
             }
