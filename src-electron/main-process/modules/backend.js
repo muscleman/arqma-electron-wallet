@@ -516,6 +516,8 @@ export class Backend {
                 })
                 this.daemon.checkRemoteDaemon(this.config_data)
                     .then((data) => {
+
+                        console.log(data)
                         
                         if (data.hasOwnProperty("error")) {
                             // error contacting remote daemon

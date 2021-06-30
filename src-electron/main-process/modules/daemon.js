@@ -72,7 +72,7 @@ export class Daemon {
     }
 
     checkRemoteDaemon (options) {
-        //console.log('>>>>>>>>>>>>>>>>>checkRemoteDaemon')
+        // console.log('>>>>>>>>>>>>>>>>>checkRemoteDaemon')
         if (options.daemon.type === "local") {
             return new Promise((resolve, reject) => {
                resolve({
@@ -202,10 +202,12 @@ export class Daemon {
             if (options.daemon.type !== "local_zmq") {
                 this.daemonProcess.stdout.on("data", data => process.stdout.write(`Daemon: ${data}`))
 
+                let daemon_info = {}
                 // To let caller know when the daemon is ready
                 let intrvl = setInterval(async() => {
                     try {
-                        const result = await this.rpcDaemon.getInfo()
+                        daemon_info.info = await this.rpcDaemon.getInfo()
+                        this.sendGateway("set_daemon_data", daemon_info)
                         clearInterval(intrvl)
                         this.startHeartbeat()
                         resolve()
@@ -340,11 +342,12 @@ export class Daemon {
                 blockHeaderByHeightData = await this.rpcDaemon.getLastBlockHeader()
                 }
                 catch (error) {
+                    console.log(`daemon.timestampToHeight ${error}`)
                     return reject()
                 }
             }
 
-            let new_pivot = [blockHeaderByHeightData.result.block_header.height, blockHeaderByHeightData.result.block_header.timestamp]
+            let new_pivot = [blockHeaderByHeightData.block_header.height, blockHeaderByHeightData.block_header.timestamp]
 
             // If we are within an hour that is good enough
             // If for some reason there is a > 1h gap between blocks
@@ -381,7 +384,7 @@ export class Daemon {
             this.daemon_info = daemon_info.info
         }
         catch (error) {
-            console.log(error)
+            console.log(`daemon.heartbeatAction ${error}`)
         }
 
         this.sendGateway("set_daemon_data", daemon_info)

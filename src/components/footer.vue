@@ -61,7 +61,7 @@ export default {
             if(this.config.daemon.type === "local" && !this.daemon.info.is_ready)
                 return Math.max(this.daemon.info.height, this.daemon.info.target_height)
             else
-                return this.daemon.info.height
+                return this.daemon.info.target_height
         },
         daemon_pct (state) {
             if(this.config.daemon.type === "local" || this.config.daemon.type === "local_zmq")
