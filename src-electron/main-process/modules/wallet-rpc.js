@@ -858,7 +858,7 @@ export class WalletRPC {
                 }
             }
             catch (error) {
-                console.log(`wallet_rpc.transfer sweep_all = ${sweep_all} ${error}`)
+                console.log(`wallet_rpc.transfer sweep_all = ${sweep_all} ${error}, params = ${JSON.stringify(params, null, '\t')}`)
                 // if (transferData.hasOwnProperty("error")) {
                     //let error = transferData.error.message.charAt(0).toUpperCase() + transferData.error.message.slice(1)
                     this.sendGateway("set_tx_status", {
