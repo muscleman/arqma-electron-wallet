@@ -830,7 +830,7 @@ export class WalletRPC {
                 return
             }
 
-            amount = (parseFloat(amount) * 1e9).toFixed(0)
+            amount = Math.round((parseFloat(amount) * 1e9))
 
             let sweep_all = amount === this.wallet_state.unlocked_balance
             let transferData = {}
