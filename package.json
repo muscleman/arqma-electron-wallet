@@ -19,11 +19,9 @@
     "build": "quasar build -m electron -t mat",
     "lint": "eslint --ext .js,.vue src",
     "lint-fix": "eslint --fix .",
-    "test": "echo \"No test specified\" && exit 0",
-    "postinstall": "npx electron-rebuild -f -w zeromq"
+    "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
-    "better-sqlite3": "^7.4.1",
     "@arqma/arqma-rpc": "^0.2.2",
     "acorn": "^8.2.4",
     "axios": "^0.21.1",
@@ -47,6 +45,7 @@
     "rotating-file-stream": "^1.4.1",
     "rxjs": "^6.6.7",
     "ryo-core-js": "git://github.com/arqtras/ryo-core-js.git",
+    "sqlite3": "^5.0.2",
     "urllib": "^2.37.1",
     "utf-8-validate": "^5.0.5",
     "validation": "0.0.1",

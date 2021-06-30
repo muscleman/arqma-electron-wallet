@@ -1,4 +1,5 @@
-import SQL from "better-sqlite3"
+// import SQL from "better-sqlite3"
+import SQL from "sqlite3"
 import { join } from "path"
 import { logger } from "./utils"
 
