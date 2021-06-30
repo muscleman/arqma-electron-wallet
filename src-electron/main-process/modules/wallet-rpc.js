@@ -384,15 +384,10 @@ export class WalletRPC {
         }
 
         try {
-            await this.rpc.sendRPC_WithMD5("restore_view_wallet", {
-                filename,
-                password,
-                address,
-                viewkey,
-                refresh_start_height
-            })
+            await this.rpcWallet.generateFromKeys({filename, address, viewkey, restore_height: refresh_start_height, password})
         }
         catch (error) {
+            console.log(`wallet-rpc.restoreViewWallet ${error}`)
             this.sendGateway("set_wallet_error", { status: error })
             return
         }
@@ -496,14 +491,6 @@ export class WalletRPC {
         }
 
         try {
-            const mnemonicData = await this.rpcWallet.queryKey({ key_type: "mnemonic" })
-            wallet.secret.mnemonic = mnemonicData.key
-        }
-        catch (error) {
-            console.log(`wallet_rpc.finalizeNewWallet queryKey mnemonic ${error}`)
-        }
-
-        try {
             const spendKeyData = await this.rpcWallet.queryKey({ key_type: "spend_key" })
             wallet.secret.spend_key = spendKeyData.key
             if (/^0*$/.test(spendKeyData.key)) {
@@ -514,6 +501,16 @@ export class WalletRPC {
             console.log(`wallet_rpc.finalizeNewWallet queryKey spend_key ${error}`)
         }
 
+        if (!wallet.info.view_only)
+        {
+            try {
+                const mnemonicData = await this.rpcWallet.queryKey({ key_type: "mnemonic" })
+                wallet.secret.mnemonic = mnemonicData.key
+            }
+            catch (error) {
+                console.log(`wallet_rpc.finalizeNewWallet queryKey mnemonic ${error}`)
+            }
+        }
         try {
             const viewKeyData = await this.rpcWallet.queryKey({ key_type: "view_key" })
             wallet.secret.view_key = viewKeyData.key
@@ -1085,15 +1082,14 @@ export class WalletRPC {
         }
         let getAddressBookData = {}
         try {
-            // const subaddresses = await this.rpcWallet.getAccounts()
-            // console.log(subaddresses)
-            // if (subaddresses.subaddress_accounts.length === 0)
-            //     return getAddressBookData
-            // const numberOfAccounts = subaddresses.subaddress_accounts.map(subAddress => {
-            //     return subaddresses.account_index
-            // })
-            // console.log(numberOfAccounts)
-            getAddressBookData = await this.rpcWallet.getAddressBook({entries: [0,1,2]})
+            const subaddresses = await this.rpcWallet.getAccounts()
+            if (subaddresses.subaddress_accounts.length === 1) {
+                return getAddressBookData
+            }
+            const entries = subaddresses.subaddress_accounts.map(subAddress => {
+                return subAddress.account_index
+            })
+            getAddressBookData = await this.rpcWallet.getAddressBook({entries})
         } 
         catch (error) {
             console.log(`wallet-rpc.getAddressBook ${error}`)
