@@ -809,7 +809,7 @@ export class WalletRPC {
         }
     }
 
-    transfer (password, amount, address, payment_id, priority, note, address_book = {}) {
+    transfer (password, valueAmount, address, payment_id, priority, note, address_book = {}) {
         //console.log('>>>>>>>>>>>>>>>>>transfer')
         //console.log(password, amount, address, payment_id, priority, note, address_book)
         crypto.pbkdf2(password, this.auth[2], 1000, 64, "sha512", async (err, password_hash) => {
@@ -830,7 +830,7 @@ export class WalletRPC {
                 return
             }
 
-            amount = Math.round((parseFloat(amount) * 1e9))
+            let amount = Math.round((parseFloat(valueAmount) * 1e9))
 
             let sweep_all = amount === this.wallet_state.unlocked_balance
             let transferData = {}
