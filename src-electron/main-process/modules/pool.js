@@ -583,19 +583,23 @@ export class Pool {
                 } catch (error) {
                     return reject({ message: "Error constructing block blob", diff: hash_diff })
                 }
-                this.submitBlock(block_blob).then(data => {
-                    if (data.hasOwnProperty("error")) {
-                        return reject({ message: "Error submitting block", diff: hash_diff })
-                    }
-                    let block_fast_hash = "0000000000000000000000000000000000000000000000000000000000000000"
-                    try {
-                        block_fast_hash = this.core_bridge.get_block_id(block_blob)
-                    } catch (error) {
-                        logger.log("warn", "Get block id failed")
-                    }
-                    this.getBlock().catch(() => {})
-                    return resolve({ hash: block_fast_hash, diff: hash_diff })
-                })
+                this.submitBlock(block_blob)
+                    .then(data => {
+                        if (data.hasOwnProperty("error")) {
+                            return reject({ message: "Error submitting block", diff: hash_diff })
+                        }
+                        let block_fast_hash = "0000000000000000000000000000000000000000000000000000000000000000"
+                        try {
+                            block_fast_hash = this.core_bridge.get_block_id(block_blob)
+                        } catch (error) {
+                            logger.log("warn", "Get block id failed")
+                        }
+                        this.getBlock().catch(() => {})
+                        return resolve({ hash: block_fast_hash, diff: hash_diff })
+                    })
+                    .catch(error => {
+                        console.log(`pool.processShare ${block_blob} ${error}`)
+                    })
             } else if (hash_diff.lt(job.difficulty)) {
                 return reject({ message: "Rejected low difficulty share", diff: hash_diff })
             } else {
@@ -667,7 +671,12 @@ export class Pool {
     }
 
     submitBlock (block) {
-        return this.rpcDaemon.submitBlock({blobs: block})
+        try {
+        return this.rpcDaemon.submitBlock({blobs: [block]})
+        }
+        catch (error) {
+            console.log(`pool.submitBlock ${error}`)
+        }
     }
 
     sendStatus (status) {

@@ -1,5 +1,4 @@
-// import SQL from "better-sqlite3"
-import SQL from "sqlite3"
+import SQL from "better-sqlite3"
 import { join } from "path"
 import { logger } from "./utils"
 
@@ -174,28 +173,29 @@ export class Database {
         return this.stats
     }
 
-    unlockBlocks () {
+    async unlockBlocks () {
         const blocks = this.stmt.blocks_status_0.all()
         for (const block of blocks) {
-            this.pool.sendRPC("get_block", { height: block.height }).then(data => {
-                if (data.hasOwnProperty("error")) {
-                    logger.log("error", "Error calling get_block %j", [data.error.message])
-                    return false
-                }
+            try {
+                let poolData = await this.pool.rpcDaemon.getBlock({ height: block.height })
                 if (block.reward === -1) {
-                    const json = JSON.parse(data.result.json)
+                    const json = JSON.parse(poolData.json)
                     const reward = json.miner_tx.vout[0].amount
                     this.stmt.blocks_update.run({ status: 0, reward: reward, hash: block.hash })
                 }
-                if (data.result.block_header.hash !== block.hash) {
+                if (poolData.block_header.hash !== block.hash) {
                     logger.log("error", "Block %s ophaned", [block.hash])
                     this.stmt.blocks_update.run({ status: 1, reward: 0, hash: block.hash })
                 }
-                if (data.result.block_header.depth > 18) {
+                if (poolData.block_header.depth > 18) {
                     logger.log("success", "Block %s unlocked", [block.hash])
                     this.stmt.blocks_update.run({ status: 2, reward: block.reward, hash: block.hash })
                 }
-            })
+            }
+            catch (error) {
+                logger.log("error", "Error calling get_block %s", [error])
+                return false              
+            }
         }
     }
 

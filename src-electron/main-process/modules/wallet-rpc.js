@@ -851,7 +851,10 @@ export class WalletRPC {
                     params = {
                         "destinations": [{ "amount": amount, "address": address }],
                         "priority": priority,
-                        "mixin": 10
+                        "ring_size": 11,
+                        "mixin": 10,
+                        "priority": 1,
+                        "unlock_time": 0
                     }
                     if (payment_id) {
                         params.payment_id = payment_id
@@ -1178,14 +1181,15 @@ export class WalletRPC {
         }
         let getAddressBookData = {}
         /*FIX ME!!!!!*/
-        // try {
-        //     // muscleman NOTE: electron wallet will need to track entries array or this won't work.
-        //     getAddressBookData = await this.rpcWallet.getAddressBook({entries: [0]})
-        // } 
-        // catch (error) {
-        //     console.log(`wallet-rpc.getAddressBook ${error}`)
-        //     return getAddressBookData
-        // }
+        try {
+            // muscleman NOTE: electron wallet will need to track entries array or this won't work.
+            // getAddressBookData = await this.rpcWallet.getAddressBook({entries: [0]})
+            getAddressBookData = await this.rpcWallet.getAddressBook({entries: []})
+        } 
+        catch (error) {
+            console.log(`wallet-rpc.getAddressBook ${error}`)
+            return getAddressBookData
+        }
 
         if (getAddressBookData.entries) {
             for (let i = 0; i < getAddressBookData.entries.length; i++) {
