@@ -607,9 +607,7 @@ export class WalletRPC {
                 address_book_starred: []
             }
         }
-        let data = []
-
-/* WORK IN PROGRESS: DON"T DELETE
+ 
         try {
             let addressData = await this.rpcWallet.getAddress({ account_index: 0 })
             wallet.info.address = addressData.address
@@ -621,6 +619,7 @@ export class WalletRPC {
         }
         catch (error) {
             console.log(`wallet_rpc.heartbeatAction getAddress ${error}`)
+            didError = true
         }
 
         try {
@@ -634,169 +633,60 @@ export class WalletRPC {
         }
         catch (error) {
             console.log(`wallet_rpc.finalizeNewWallet getheight ${error}`)
+            didError = true
         }
 
         try {
             const balanceData = await this.rpcWallet.getBalance({ account_index: 0 })
-             if (this.wallet_state.balance === balanceData.balance &&
-                this.wallet_state.unlocked_balance === balanceData.unlocked_balance) {
-                // continue
+            if (this.wallet_state.balance !== balanceData.balance ||
+                this.wallet_state.unlocked_balance !== balanceData.unlocked_balance) {
+                
+                this.wallet_state.balance = wallet.info.balance = balanceData.balance
+                this.wallet_state.unlocked_balance = wallet.info.unlocked_balance = balanceData.unlocked_balance
+                this.sendGateway("set_wallet_data", {
+                    info: wallet.info
+                })
             }
-
-            this.wallet_state.balance = wallet.info.balance = balanceData.balance
-            this.wallet_state.unlocked_balance = wallet.info.unlocked_balance = balanceData.unlocked_balance
-            this.sendGateway("set_wallet_data", {
-                info: wallet.info
-            })
-
         }
         catch (error) {
             console.log(`wallet_rpc.finalizeNewWallet getBalance ${error}`)
+            didError = true
         }
 
 
         try {
             let transactionData = await this.getTransactions()
-            // wallet.info.height = transactionData.?
-            // this.sendGateway("set_wallet_data", {
-            //     info: {
-            //         height: heightData.height
-            //     }
-            // })
+            Object.keys(transactionData).map(key => {
+                                            wallet[key] = Object.assign(wallet[key], transactionData[key])
+                                        })
         }
         catch (error) {
             console.log(`wallet_rpc.finalizeNewWallet getTransactions ${error}`)
+            didError = true
         }
 
         try {
             let addressListData = await this.getAddressList()
-            // wallet.info.height = addressListData.?
-            // this.sendGateway("set_wallet_data", {
-            //     info: {
-            //         height: heightData.height
-            //     }
-            // })
+            Object.keys(addressListData).map(key => {
+                                            wallet[key] = Object.assign(wallet[key], addressListData[key])
+                                        })
         }
         catch (error) {
             console.log(`wallet_rpc.finalizeNewWallet getAddressList ${error}`)
+            didError = true
         }
 
         try {
             let addressBookData = await this.getAddressBook()
-            // wallet.info.height = addressBookData.?
-            // this.sendGateway("set_wallet_data", {
-            //     info: {
-            //         height: heightData.height
-            //     }
-            // })
+            Object.keys(addressBookData).map(key => {
+                                            wallet[key] = Object.assign(wallet[key], addressBookData[key])
+                                        })
         }
         catch (error) {
             console.log(`wallet_rpc.finalizeNewWallet addressBookData ${error}`)
-        }
-        
-
-*/
-
-
-        try {
-            data.push(await this.rpcWallet.getAddress({ account_index: 0 }))
-            data.push(await this.rpcWallet.getHeight())
-            data.push(await this.rpcWallet.getBalance({ account_index: 0 }))
-
-        } catch (error) {
-            console.log(`wallet-rpc.heartbeatAction ${error}`)
             didError = true
         }
-
-        try {
-            for (let n of data) {
-                if (Object.keys(n).length === 0 || n.hasOwnProperty("error")) {
-                    // Maybe we also need to look into the other error codes it could give us
-                    // Error -13: No wallet file - This occurs when you call open wallet while another wallet is still syncing
-                    if (extended && n.error && n.error.code === -13) {
-                        didError = true
-                    }
-                    continue
-                }
-
-                if ("height" in n && wallet.info) {
-                    try {
-                        wallet.info.height = n.height
-                        this.sendGateway("set_wallet_data", {
-                            info: {
-                                height: n.height
-                            }
-                        })
-                    } catch (error) {
-                        didError = true
-                        break
-                    }
-                } else if ("address" in n && wallet.info) {
-                    try {
-                        wallet.info.address = n.address
-                        this.sendGateway("set_wallet_data", {
-                            info: {
-                                address: n.address
-                            }
-                        })
-                    } catch (error) {
-                        didError = true
-                        break
-                    }
-                } else if ("balance" in n && this.wallet_state) {
-                    try {
-                        if (this.wallet_state.balance === n.balance &&
-                            this.wallet_state.unlocked_balance === n.unlocked_balance) {
-                            // continue
-                        }
-    
-                        this.wallet_state.balance = wallet.info.balance = n.balance
-                        this.wallet_state.unlocked_balance = wallet.info.unlocked_balance = n.unlocked_balance
-                        this.sendGateway("set_wallet_data", {
-                            info: wallet.info
-                        })
-    
-                    } catch (error) {
-                        didError = true
-                        break
-                    }
-                    // if balance has recently changed, get updated list of transactions and used addresses
-                    let actions = []
-                    try {
-                        actions.push(await this.getTransactions())
-                        actions.push(await this.getAddressList())
-                    } catch (error) {
-                    }
-
-                    try {
-                        if (true || extended) {
-                            actions.push(await this.getAddressBook())
-                        }
-                    } catch (error) {
-                    }
-                    Promise.all(actions).then((data) => {
-                        try {
-                            if (data) {
-                                for (let n of data) {
-                                    Object.keys(n).map(key => {
-                                        wallet[key] = Object.assign(wallet[key], n[key])
-                                    })
-                                }
-                                this.sendGateway("set_wallet_data", wallet)
-                            } 
-                            else {
-                                didError = true
-                            }
-                        } catch (error) {
-                            didError = true
-                        }
-                    })
-                }
-            }
-        }
-        catch(error) {
-            didError = true
-        }
+        this.sendGateway("set_wallet_data", wallet)
 
         // Set the wallet state on initial heartbeat
         if (extended) {

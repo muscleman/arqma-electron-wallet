@@ -46,7 +46,7 @@ export class Daemon {
     }
 
     async checkRemoteHeight () {
-        // console.log('>>>>>>>>>>>>>>>>>checkRemoteHeight')
+        //console.log('>>>>>>>>>>>>>>>>>checkRemoteHeight')
         let options = {
             method: "GET",
             headers: {
@@ -72,7 +72,7 @@ export class Daemon {
     }
 
     checkRemoteDaemon (options) {
-        // console.log('>>>>>>>>>>>>>>>>>checkRemoteDaemon')
+        //console.log('>>>>>>>>>>>>>>>>>checkRemoteDaemon')
         if (options.daemon.type === "local") {
             return new Promise((resolve, reject) => {
                resolve({
