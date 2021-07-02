@@ -897,13 +897,12 @@ export class WalletRPC {
         //console.log('>>>>>>>>>>>>>>>>>proveTransaction')
         const _address = address.trim() === "" ? null : address
         const _message = message.trim() === "" ? null : message
-
-        // const rpc_endpoint = _address ? "get_tx_proof" : "get_spend_proof"
         const params = {
             txid,
-            address: _address,
-            message: _message
+            address: _address
         }
+        if (!!_message)
+            params.message = _message
 
         this.sendGateway("set_prove_transaction_status", {
             code: 1,
@@ -912,29 +911,25 @@ export class WalletRPC {
         let proveTransactionData = {}
         try {
             if (_address)
-                proveTransactionData = await this.rpcWallet.checkTxProof(params)
+                proveTransactionData = await this.rpcWallet.getTxProof(params)
             else
                 proveTransactionData = await this.rpcWallet.getSpendProof(params)
         }
         catch (error) {
             console.log(`wallet_rpc.proveTransaction address = ${_address} ${error}`)
-            // let proveTransactionData = await this.rpc.sendRPC_WithMD5(rpc_endpoint, params)
-            // if (proveTransactionData.hasOwnProperty("error")) {
-                // let error = proveTransactionData.error.message.charAt(0).toUpperCase() + proveTransactionData.error.message.slice(1)
-                this.sendGateway("set_prove_transaction_status", {
-                    code: -1,
-                    message: "WTF SOMTHING BLEW UP ",
-                    state: {}
-                })
-                return
-            // }
+            this.sendGateway("set_prove_transaction_status", {
+                code: -1,
+                message: error,
+                state: {}
+            })
+            return
         }
         this.sendGateway("set_prove_transaction_status", {
             code: 0,
             message: "",
             state: {
                 txid,
-                ...(proveTransactionData.result || {})
+                ...(proveTransactionData || {})
             }
         })
     }
@@ -947,9 +942,11 @@ export class WalletRPC {
         const params = {
             txid,
             signature,
-            address: _address,
-            message: _message
+            address: _address
         }
+
+        if (!!_message)
+            params.message = _message
 
         this.sendGateway("set_check_transaction_status", {
             code: 1,
@@ -961,25 +958,24 @@ export class WalletRPC {
                 checkTransactionProofData = await this.rpcWallet.checkTxProof(params)
             else
                 checkTransactionProofData = await this.rpcWallet.getSpendProof(params)
+
+            console.log(checkTransactionProofData)
             }
         catch (error) {
             console.log(`wallet_rpc.checkTransactionProof address = ${_address} ${error}`)
-            //if (checkTransactionProofData.hasOwnProperty("error")) {
-            //let error = checkTransactionProofData.error.message.charAt(0).toUpperCase() + checkTransactionProofData.error.message.slice(1)
             this.sendGateway("set_check_transaction_status", {
                 code: -1,
-                message: "WTF SOMTHING BLEW UP ",
+                message: error,
                 state: {}
             })
             return
-            //}
         }
         this.sendGateway("set_check_transaction_status", {
             code: 0,
             message: "",
             state: {
                 txid,
-                ...(checkTransactionProofData.result || {})
+                ...(checkTransactionProofData || {})
             }
         })
     }
@@ -1182,9 +1178,7 @@ export class WalletRPC {
         let getAddressBookData = {}
         /*FIX ME!!!!!*/
         try {
-            // muscleman NOTE: electron wallet will need to track entries array or this won't work.
-            // getAddressBookData = await this.rpcWallet.getAddressBook({entries: [0]})
-            getAddressBookData = await this.rpcWallet.getAddressBook({entries: []})
+            getAddressBookData = await this.rpcWallet.getAddressBook()
         } 
         catch (error) {
             console.log(`wallet-rpc.getAddressBook ${error}`)

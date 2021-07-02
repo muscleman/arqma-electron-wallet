@@ -23,7 +23,7 @@
     "postinstall": "npx electron-rebuild"
   },
   "dependencies": {
-    "@arqma/arqma-rpc": "^0.2.2",
+    "@arqma/arqma-rpc": "git://github.com:muscleman/arqma-rpc-js.git",
     "acorn": "^8.4.1",
     "axios": "^0.21.1",
     "better-sqlite3": "^7.4.1",
