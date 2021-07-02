@@ -22,9 +22,9 @@
                         <q-item-tile label>
                             <FormatRyo :amount="tx.amount" raw-value />
                         </q-item-tile>
-                        <q-item-tile sublabel>
-                            <timeago :datetime="tx.timestamp*1000" :auto-update="60">
-                            </timeago>
+                        <q-item-tile sublabel>{{new Date(tx.timestamp * 1000)}}
+                            <!-- <timeago :datetime="tx.timestamp" :auto-update="60">
+                            </timeago> -->
                         </q-item-tile>
                     </q-item-side>
 
