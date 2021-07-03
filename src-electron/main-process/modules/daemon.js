@@ -6,6 +6,7 @@ const { fromEvent } = require("rxjs")
 const rpcDaemon = require('@arqma/arqma-rpc').RPCDaemon
 const axios = require('axios').default
 const https = require('https')
+const tls = require('tls');
 
 export class Daemon {
     constructor (backend) {
@@ -46,7 +47,7 @@ export class Daemon {
     }
 
     async checkRemoteHeight () {
-        //console.log('>>>>>>>>>>>>>>>>>checkRemoteHeight')
+        console.log('>>>>>>>>>>>>>>>>>checkRemoteHeight')
         let options = {
             method: "GET",
             headers: {
@@ -71,8 +72,8 @@ export class Daemon {
         }
     }
 
-    checkRemoteDaemon (options) {
-        //console.log('>>>>>>>>>>>>>>>>>checkRemoteDaemon')
+    async checkRemoteDaemon (options) {
+        console.log('>>>>>>>>>>>>>>>>>checkRemoteDaemon')
         if (options.daemon.type === "local") {
             return new Promise((resolve, reject) => {
                resolve({
@@ -86,7 +87,7 @@ export class Daemon {
             try {
                 let url = `http://${options.daemons[options.app.net_type].remote_host}:${options.daemons[options.app.net_type].remote_port}`
                 let remoteDaemon = rpcDaemon.createDaemonClient({url})
-                return remoteDaemon.getInfo()
+                return await remoteDaemon.getInfo()
             }
             catch (error) {
                 console.log(`daemon.checkRemoteDaemon ${error}`)
@@ -96,7 +97,7 @@ export class Daemon {
     }
 
     start (options) {
-        //console.log('>>>>>>>>>>>>>>>>>start')
+        console.log('>>>>>>>>>>>>>>>>>start')
         if (options.daemon.type === "remote") {
             this.local = false
             
@@ -377,7 +378,7 @@ export class Daemon {
     }
 
     async heartbeatAction () {   
-        // console.log('>>>>>>>>>>>>>>>>>heartbeatAction')
+        console.log('>>>>>>>>>>>>>>>>>heartbeatAction')
         let daemon_info = {}
         try {
             daemon_info.info = await this.rpcDaemon.getInfo()
@@ -391,7 +392,7 @@ export class Daemon {
     }
 
     async heartbeatSlowAction (daemon_info = {}) {
-        // console.log('>>>>>>>>>>>>>>>>>heartbeatSlowAction')
+        console.log('>>>>>>>>>>>>>>>>>heartbeatSlowAction')
         try {
             let heartbeatSlowActionData = []
             if (this.local) {
@@ -400,7 +401,7 @@ export class Daemon {
                     await this.rpcDaemon.getBans()
                 ]
             } 
-            // console.log(JSON.stringify(heartbeatSlowActionData, null, '\t'))
+            console.log(JSON.stringify(heartbeatSlowActionData, null, '\t'))
             for (let n of heartbeatSlowActionData) {
                 if ('connections' in n) {
                     daemon_info.connections = n.connections
@@ -421,7 +422,7 @@ export class Daemon {
     }
 
     quit () {
-        // console.log('>>>>>>>>>>>>>>>>>quit')
+        console.log('>>>>>>>>>>>>>>>>>quit')
         // TODO force close after few seconds!
         clearInterval(this.heartbeat)
         if (this.zmq_enabled && this.dealer) {
