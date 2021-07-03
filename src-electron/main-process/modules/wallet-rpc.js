@@ -696,7 +696,12 @@ export class WalletRPC {
             if (!didError) {
                 this.sendGateway("set_wallet_data", wallet)
             } else {
-                this.closeWallet()
+                try {
+                    await this.closeWallet()
+                }
+                catch (error) {
+                    console.log(`wallet-rpc.deleteWallet ${error}`)
+                }
                 this.sendGateway("set_wallet_error", { status: { code: -1, i18n: "notification.errors.failedWalletOpen" } })
             }
         }
@@ -1345,7 +1350,12 @@ export class WalletRPC {
             }
 
             let wallet_path = path.join(this.wallet_dir, this.wallet_state.name)
-            this.closeWallet()
+            try {
+                await this.closeWallet()
+            }
+            catch (error) {
+                console.log(`wallet-rpc.deleteWallet ${error}`)
+            }
             fs.unlinkSync(wallet_path)
             fs.unlinkSync(wallet_path + ".keys")
             fs.unlinkSync(wallet_path + ".address.txt")
@@ -1365,31 +1375,26 @@ export class WalletRPC {
 
     async closeWallet () {
         // console.log('>>>>>>>>>>>>>>>>>closeWallet')
-        try {
-            if (this.heartbeat)
-                clearInterval(this.heartbeat)
-            this.wallet_state = {
-                open: false,
-                name: "",
-                password_hash: null,
-                balance: null,
-                unlocked_balance: null
-            }
-            this.wallet_info = {
-                height: 0
-            }
+        if (this.heartbeat)
+            clearInterval(this.heartbeat)
+        this.wallet_state = {
+            open: false,
+            name: "",
+            password_hash: null,
+            balance: null,
+            unlocked_balance: null
+        }
+        this.wallet_info = {
+            height: 0
+        }
 
-            //this.saveWallet()
-        }
-        catch(error) {
-            console.log(`wallet-rpc.closeWallet calling saveWallet ${error}`)
-        }
-        try {
-            await this.rpcWallet.closeWallet()
-        }
-        catch(error) {
-            console.log(`wallet-rpc.closeWallet ${error}`)
-        }
+
+        // try {
+           return await this.rpcWallet.closeWallet()
+        // }
+        // catch(error) {
+        //     console.log(`wallet-rpc.closeWallet ${error}`)
+        // }
     }
 
     sendGateway (method, data) {
@@ -1401,30 +1406,21 @@ export class WalletRPC {
     }
 
     async quit () {
-        //return new Promise((resolve, reject) => {
-            if (this.walletRPCProcess) {
+        if (this.walletRPCProcess) {
+            
+            try {
                 await this.closeWallet()
-                // setTimeout(() => {
-                //     this.walletRPCProcess.on("close", code => {
-                //         clearTimeout(this.forceKill)
-                //         // resolve()
-                //         return
-                //     })
-
-                //     // Force kill after 20 seconds
-                //     this.forceKill = setTimeout(() => {
-                //         this.walletRPCProcess.kill("SIGKILL")
-                //     }, 20000)
-
-                //     // Force kill if the rpc is syncing
-                    const signal = this.isRPCSyncing ? "SIGKILL" : "SIGTERM"
-                    this.walletRPCProcess.kill(signal)
-                // }, 2500)
-            } else {
-                //resolve()
-                return
+                const signal = this.isRPCSyncing ? "SIGKILL" : "SIGTERM"
+                this.walletRPCProcess.kill(signal)
             }
-        //})
+            catch (error) {
+                // console.log(`wallet-rpc.quit ${error}`)
+                if (this.walletRPCProcess)
+                    this.walletRPCProcess.kill("SIGKILL")
+            }
+        } else {
+            return
+        }
     }
 
     async exportTransactions (params) {
