@@ -1418,8 +1418,6 @@ export class WalletRPC {
                 if (this.walletRPCProcess)
                     this.walletRPCProcess.kill("SIGKILL")
             }
-        } else {
-            return
         }
     }
 
