@@ -152,7 +152,7 @@ export class WalletRPC {
     }
 
     async handle (data) {
-        //console.log(data.method, '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+        // console.log(data.method, '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
         let params = data.data
 
         switch (data.method) {
@@ -254,7 +254,7 @@ export class WalletRPC {
     }
 
     async createWallet (filename, password, language, type) {
-        //console.log('>>>>>>>>>>>>>>>>>createWallet')
+        // console.log('>>>>>>>>>>>>>>>>>createWallet')
         let short_address = type === "kurz"
         try {
             await this.rpcWallet.createWallet({
@@ -277,7 +277,7 @@ export class WalletRPC {
     }
 
     hasPassword () {
-        //console.log('>>>>>>>>>>>>>>>>>hasPassword')
+        // console.log('>>>>>>>>>>>>>>>>>hasPassword')
         if (this.wallet_state.password_hash === null) {
             this.sendGateway("set_has_password", false)
             return
@@ -295,7 +295,7 @@ export class WalletRPC {
     }
 
     async validateAddress (address) {
-        //console.log('>>>>>>>>>>>>>>>>>validateAddress')
+        // console.log('>>>>>>>>>>>>>>>>>validateAddress')
         try {
             let validateAddressData = await this.rpcWallet.validateAddress(address)
             const { valid, nettype } = validateAddressData
@@ -316,7 +316,7 @@ export class WalletRPC {
     }
 
     async restoreWallet (filename, password, seed, refresh_type, refresh_start_timestamp_or_height) {
-        //console.log('>>>>>>>>>>>>>>>>>restoreWallet')
+        // console.log('>>>>>>>>>>>>>>>>>restoreWallet')
         if (refresh_type === "date") {
             // Convert timestamp to 00:00 and move back a day
             // Core code also moved back some amount of blocks
@@ -364,7 +364,7 @@ export class WalletRPC {
     }
 
     async restoreViewWallet (filename, password, address, viewkey, refresh_type, refresh_start_timestamp_or_height) {
-        //console.log('>>>>>>>>>>>>>>>>>restoreViewWallet')
+        // console.log('>>>>>>>>>>>>>>>>>restoreViewWallet')
         if (refresh_type === "date") {
             // Convert timestamp to 00:00 and move back a day
             // Core code also moved back some amount of blocks
@@ -401,7 +401,7 @@ export class WalletRPC {
     }
 
     async importWallet (filename, password, import_path) {
-        //console.log('>>>>>>>>>>>>>>>>>importWallet')
+        // console.log('>>>>>>>>>>>>>>>>>importWallet')
         // trim off suffix if exists
         if (import_path.endsWith(".keys")) {
             import_path = import_path.substring(0, import_path.length - ".keys".length)
@@ -446,7 +446,7 @@ export class WalletRPC {
     }
 
     async finalizeNewWallet (filename, newly_created = false) {
-        //console.log('>>>>>>>>>>>>>>>>>finalizeNewWallet')
+        // console.log('>>>>>>>>>>>>>>>>>finalizeNewWallet')
         let data = []
         let wallet = {
             info: {
@@ -703,8 +703,8 @@ export class WalletRPC {
     }
 
     transfer (password, valueAmount, address, payment_id, priority, note, address_book = {}) {
-        //console.log('>>>>>>>>>>>>>>>>>transfer')
-        //console.log(password, amount, address, payment_id, priority, note, address_book)
+        // console.log('>>>>>>>>>>>>>>>>>transfer')
+        // console.log(password, amount, address, payment_id, priority, note, address_book)
         crypto.pbkdf2(password, this.auth[2], 1000, 64, "sha512", async (err, password_hash) => {
             if (err) {
                 this.sendGateway("set_tx_status", {
@@ -787,7 +787,7 @@ export class WalletRPC {
     }
 
     async proveTransaction (txid, address, message) {
-        //console.log('>>>>>>>>>>>>>>>>>proveTransaction')
+        // console.log('>>>>>>>>>>>>>>>>>proveTransaction')
         const _address = address.trim() === "" ? null : address
         const _message = message.trim() === "" ? null : message
         const params = {
@@ -828,7 +828,7 @@ export class WalletRPC {
     }
 
     async checkTransactionProof (signature, txid, address, message) {
-        //console.log('>>>>>>>>>>>>>>>>>checkTransactionProof')
+        // console.log('>>>>>>>>>>>>>>>>>checkTransactionProof')
         const _address = address.trim() === "" ? null : address
         const _message = message.trim() === "" ? null : message
 
@@ -1364,7 +1364,7 @@ export class WalletRPC {
     }
 
     closeWallet () {
-        console.log('>>>>>>>>>>>>>>>>>closeWallet')
+        // console.log('>>>>>>>>>>>>>>>>>closeWallet')
         try {
             if (this.heartbeat)
                 clearInterval(this.heartbeat)
@@ -1426,7 +1426,7 @@ export class WalletRPC {
     }
 
     async exportTransactions (params) {
-        //console.log('>>>>>>>>>>>>>>>>>exportTransactions')
+        // console.log('>>>>>>>>>>>>>>>>>exportTransactions')
         if (params.hasOwnProperty("export_path")) {
             if (!fs.existsSync(params.export_path)) 
             { 

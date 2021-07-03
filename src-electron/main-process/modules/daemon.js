@@ -47,7 +47,7 @@ export class Daemon {
     }
 
     async checkRemoteHeight () {
-        console.log('>>>>>>>>>>>>>>>>>checkRemoteHeight')
+        // console.log('>>>>>>>>>>>>>>>>>checkRemoteHeight')
         let options = {
             method: "GET",
             headers: {
@@ -73,7 +73,7 @@ export class Daemon {
     }
 
     async checkRemoteDaemon (options) {
-        console.log('>>>>>>>>>>>>>>>>>checkRemoteDaemon')
+        // console.log('>>>>>>>>>>>>>>>>>checkRemoteDaemon')
         if (options.daemon.type === "local") {
             return new Promise((resolve, reject) => {
                resolve({
@@ -97,7 +97,7 @@ export class Daemon {
     }
 
     start (options) {
-        console.log('>>>>>>>>>>>>>>>>>start')
+        // console.log('>>>>>>>>>>>>>>>>>start')
         if (options.daemon.type === "remote") {
             this.local = false
             
@@ -378,7 +378,7 @@ export class Daemon {
     }
 
     async heartbeatAction () {   
-        console.log('>>>>>>>>>>>>>>>>>heartbeatAction')
+        // console.log('>>>>>>>>>>>>>>>>>heartbeatAction')
         let daemon_info = {}
         try {
             daemon_info.info = await this.rpcDaemon.getInfo()
@@ -392,7 +392,7 @@ export class Daemon {
     }
 
     async heartbeatSlowAction (daemon_info = {}) {
-        console.log('>>>>>>>>>>>>>>>>>heartbeatSlowAction')
+        // console.log('>>>>>>>>>>>>>>>>>heartbeatSlowAction')
         try {
             let heartbeatSlowActionData = []
             if (this.local) {
@@ -422,7 +422,7 @@ export class Daemon {
     }
 
     quit () {
-        console.log('>>>>>>>>>>>>>>>>>quit')
+        // console.log('>>>>>>>>>>>>>>>>>quit')
         // TODO force close after few seconds!
         clearInterval(this.heartbeat)
         if (this.zmq_enabled && this.dealer) {

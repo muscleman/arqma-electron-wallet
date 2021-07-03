@@ -3,7 +3,6 @@ import { WalletRPC } from "./wallet-rpc"
 import { Market } from "./market"
 import { Pool } from "./pool"
 import { ipcMain, dialog } from "electron"
-import { logger } from "./pool/utils"
 
 const os = require("os")
 const fs = require("fs")
@@ -282,7 +281,7 @@ export class Backend {
             Object.keys(params).map(key => {
                 this.config_data.pool[key] = Object.assign(this.config_data.pool[key], params[key])
             })
-            fs.writeFile(this.config_file, JSON.stringify(this.config_data, null, 4), "utf8", () => {
+            fs.writeFile(this.config_file, JSON.stringify(this.config_data, null, 4), "utf8", async () => {
                 this.send("set_app_data", {
                     config: this.config_data
                 })
@@ -296,7 +295,7 @@ export class Backend {
                     }
                 } else {
                     if (!this.config_data.pool.server.enabled && this.pool) {
-                        this.pool.stop()
+                        await this.pool.stop()
                         this.send("set_pool_data", {status: 0 })
                     }
                 }
@@ -345,7 +344,7 @@ export class Backend {
 
     startup () {
         this.send("initialize")
-        fs.readFile(this.config_file, "utf8", (err, data) => {
+        fs.readFile(this.config_file, "utf8", async (err, data) => {
             if (err) {
                 this.send("set_app_data", {
                     status: {
@@ -490,7 +489,9 @@ export class Backend {
                 }
             })
 
-            this.daemon.checkVersion().then((version) => {
+
+            try {
+                let version = await this.daemon.checkVersion()
                 if (version) {
                     this.send("set_app_data", {
                         status: {
@@ -507,123 +508,120 @@ export class Backend {
                     })
                     this.send("show_notification", { type: "warning", textColor: "black", message: "Warning: arqmad not found, using remote node", timeout: 2000 })
                 }
-
-                this.market.start(this.config_data)
-                .then(() => {
-
-                })
-                .catch(error => {
-                })
-                this.daemon.checkRemoteDaemon(this.config_data)
-                    .then((data) => {
-
-                        console.log(data)
-
-                        if (data.hasOwnProperty("error")) {
-                            // error contacting remote daemon
-
-                            if (this.config_data.daemon.type === "local_remote") {
-                                // if in local+remote, then switch to local only
-                                this.config_data.daemon.type = "local"
-                                this.send("set_app_data", {
-                                    config: this.config_data,
-                                    pending_config: this.config_data
-                                })
-                                this.send("show_notification", { type: "warning", textColor: "black", message: "Warning: remote node not available, using local node", timeout: 2000 })
-                            } else if (this.config_data.daemon.type === "remote") {
-                                this.send("set_app_data", {
-                                    status: {
-                                        code: -1 // Return to config screen
-                                    }
-                                })
-                                this.send("show_notification", { type: "negative", message: "Error: remote node not available, change to local mode or update remote node", timeout: 2000 })
-                                return
-                            }
-                        } else if (this.config_data.app.stagenet && !data.result.stagenet) {
-                            // remote node network does not match local network (stagenet, mainnet)
-
-                            if (this.config_data.daemon.type === "local_remote") {
-                                // if in local+remote, then switch to local only
-                                this.config_data.daemon.type = "local"
-                                this.send("set_app_data", {
-                                    config: this.config_data,
-                                    pending_config: this.config_data
-                                })
-                                this.send("show_notification", { type: "warning", textColor: "black", message: "Warning: remote node network does not match, using local node", timeout: 2000 })
-                            } else if (this.config_data.daemon.type === "remote") {
-                                this.send("set_app_data", {
-                                    status: {
-                                        code: -1 // Return to config screen
-                                    }
-                                })
-                                this.send("show_notification", { type: "negative", message: "Error: remote node network does not match, change to local mode or update remote node", timeout: 2000 })
-                                return
-                            }
-                        }
-
-                        this.daemon.start(this.config_data)
-                            .then(() => {
-                                this.send("set_app_data", {
-                                    status: {
-                                        code: 6 // Starting wallet
-                                    }
-                                })
-
-                                this.walletd.start(this.config_data).then(() => {
-                                    this.send("set_app_data", {
-                                        status: {
-                                            code: 7 // Reading wallet list
-                                        }
-                                    })
-
-                                    this.walletd.listWallets(true)
-
-                                    if (this.pool) {
-                                        this.pool.init(this.config_data)
-                                        this.isPoolInitialized = true
-                                    }
-                                    else {
-                                        this.send("set_pool_data", {status: 0 })
-                                    }
-                                    this.send("set_app_data", {
-                                        status: {
-                                            code: 0 // Ready
-                                        }
-                                    })
-                                }).catch(error => {
-                                    this.send("set_app_data", {
-                                        status: {
-                                            code: -1 // Return to config screen
-                                        }
-                                    })
-                                })
-                            })
-                            .catch(error => {
-                                if (this.config_data.daemon.type == "remote") {
-                                    this.send("show_notification", { type: "negative", message: "Remote daemon cannot be reached", timeout: 2000 })
-                                } else {
-                                    this.send("show_notification", { type: "negative", message: "Local daemon internal error", timeout: 2000 })
-                                }
-                                this.send("set_app_data", {
-                                    status: {
-                                        code: -1 // Return to config screen
-                                    }
-                                })
-                            })
-                    })
-            })
-            .catch(error => {
+            }
+            catch (error) {
                 this.send("set_app_data", {
                     status: {
                         code: -1 // Return to config screen
                     }
                 })
-            })
-            this.market.start(this.config_data)
-                .then(() => {
+            }
+
+            try {
+                await this.market.start(this.config_data)
+            }
+            catch (error) {}
+
+            let checkRemoteDaemonData = {}
+            try {
+                checkRemoteDaemonData = await this.daemon.checkRemoteDaemon(this.config_data)
+            }
+            catch (error) 
+            {
+                if (this.config_data.daemon.type === "local_remote") {
+                    // if in local+remote, then switch to local only
+                    this.config_data.daemon.type = "local"
+                    this.send("set_app_data", {
+                        config: this.config_data,
+                        pending_config: this.config_data
+                    })
+                    this.send("show_notification", { type: "warning", textColor: "black", message: "Warning: remote node not available, using local node", timeout: 2000 })
+                } else if (this.config_data.daemon.type === "remote") {
+                    this.send("set_app_data", {
+                        status: {
+                            code: -1 // Return to config screen
+                        }
+                    })
+                    this.send("show_notification", { type: "negative", message: "Error: remote node not available, change to local mode or update remote node", timeout: 2000 })
+                    return
+                }
+            }
+
+            if (this.config_data.app.stagenet && !checkRemoteDaemonData.stagenet) {
+                // remote node network does not match local network (stagenet, mainnet)
+
+                if (this.config_data.daemon.type === "local_remote") {
+                    // if in local+remote, then switch to local only
+                    this.config_data.daemon.type = "local"
+                    this.send("set_app_data", {
+                        config: this.config_data,
+                        pending_config: this.config_data
+                    })
+                    this.send("show_notification", { type: "warning", textColor: "black", message: "Warning: remote node network does not match, using local node", timeout: 2000 })
+                } else if (this.config_data.daemon.type === "remote") {
+                    this.send("set_app_data", {
+                        status: {
+                            code: -1 // Return to config screen
+                        }
+                    })
+                    this.send("show_notification", { type: "negative", message: "Error: remote node network does not match, change to local mode or update remote node", timeout: 2000 })
+                    return
+                }
+            }
+
+            try {
+                await this.daemon.start(this.config_data)
+                this.send("set_app_data", {
+                    status: {
+                        code: 6 // Starting wallet
+                    }
                 })
-                .catch(error => {
+            }
+            catch (error)
+            {
+                if (this.config_data.daemon.type == "remote") {
+                    this.send("show_notification", { type: "negative", message: "Remote daemon cannot be reached", timeout: 2000 })
+                } else {
+                    this.send("show_notification", { type: "negative", message: "Local daemon internal error", timeout: 2000 })
+                }
+                this.send("set_app_data", {
+                    status: {
+                        code: -1 // Return to config screen
+                    }
                 })
+            }
+
+
+            try {
+                await this.walletd.start(this.config_data)
+                this.send("set_app_data", {
+                    status: {
+                        code: 7 // Reading wallet list
+                    }
+                })
+
+                this.walletd.listWallets(true)
+
+                if (this.pool) {
+                    this.pool.init(this.config_data)
+                    this.isPoolInitialized = true
+                }
+                else {
+                    this.send("set_pool_data", {status: 0 })
+                }
+                this.send("set_app_data", {
+                    status: {
+                        code: 0 // Ready
+                    }
+                })
+            }
+            catch(error) {
+                this.send("set_app_data", {
+                    status: {
+                        code: -1 // Return to config screen
+                    }
+                })
+            }
         })
     }
 
