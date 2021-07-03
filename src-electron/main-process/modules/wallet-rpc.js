@@ -191,7 +191,7 @@ export class WalletRPC {
             break
 
         case "close_wallet":
-            await this.closeWallet()
+            this.closeWallet()
             break
 
         case "transfer":
@@ -425,10 +425,10 @@ export class WalletRPC {
                 fs.copyFileSync(import_path + ".keys", destination + ".keys", fs.constants.COPYFILE_EXCL)
             }
             try {
-                await this.rpcWallet.openWallet({
-                    filename,
-                    password
-                })
+                let params = {filename}
+                if (!!password)
+                    params.password = password
+                await this.rpcWallet.openWallet(params)
             }
             catch (error) {
                 fs.unlinkSync(destination)
@@ -536,9 +536,12 @@ export class WalletRPC {
 
     async openWallet (filename, password) {
         try {
-            console.log('before>>>>>>>>>>>>>>>>>openWallet')
-            await this.rpcWallet.openWallet({filename, password})
-            console.log('after>>>>>>>>>>>>>>>>>openWallet')
+            // console.log('before>>>>>>>>>>>>>>>>>openWallet')
+            let params = {filename}
+            if (!!password)
+                params.password = password
+            await this.rpcWallet.openWallet(params)
+            // console.log('after>>>>>>>>>>>>>>>>>openWallet')
         } catch(error) {
             this.sendGateway("set_wallet_error", { status: { code: -1, message: "Failed to open wallet" } })
             return
@@ -693,7 +696,7 @@ export class WalletRPC {
             if (!didError) {
                 this.sendGateway("set_wallet_data", wallet)
             } else {
-                await this.closeWallet()
+                this.closeWallet()
                 this.sendGateway("set_wallet_error", { status: { code: -1, i18n: "notification.errors.failedWalletOpen" } })
             }
         }
@@ -1342,7 +1345,7 @@ export class WalletRPC {
             }
 
             let wallet_path = path.join(this.wallet_dir, this.wallet_state.name)
-            await this.closeWallet()
+            this.closeWallet()
             fs.unlinkSync(wallet_path)
             fs.unlinkSync(wallet_path + ".keys")
             fs.unlinkSync(wallet_path + ".address.txt")
@@ -1353,15 +1356,14 @@ export class WalletRPC {
 
     async saveWallet () {
         try {
-            //await this.rpcWallet.store()
-            //await this.rpcWallet.stopWallet()
+            await this.rpcWallet.store()
         }
         catch(error) {
             console.log(`wallet-rpc.saveWallet ${error}`)
         }
     }
 
-    async closeWallet () {
+    closeWallet () {
         console.log('>>>>>>>>>>>>>>>>>closeWallet')
         try {
             if (this.heartbeat)
@@ -1377,13 +1379,13 @@ export class WalletRPC {
                 height: 0
             }
 
-            await this.saveWallet()
+            this.saveWallet()
         }
         catch(error) {
             console.log(`wallet-rpc.closeWallet calling saveWallet ${error}`)
         }
         try {
-            await this.rpcWallet.closeWallet()
+            this.rpcWallet.closeWallet()
         }
         catch(error) {
             console.log(`wallet-rpc.closeWallet ${error}`)
