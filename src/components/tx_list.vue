@@ -8,7 +8,7 @@
     <template v-else>
         <q-infinite-scroll :handler="loadMore" ref="scroller">
             <q-list link no-border :dark="theme=='dark'" class="tx-list">
-                <q-item v-for="(tx, index) in tx_list_paged" :key="tx.txid"
+                <q-item v-for="(tx) in tx_list_paged" :key="tx.txid"
                         @click.native="details(tx)" :class="'tx-'+tx.type">
                     <q-item-side>
                         <TxTypeIcon :type="tx.type" />
@@ -22,9 +22,9 @@
                         <q-item-tile label>
                             <FormatRyo :amount="tx.amount" raw-value />
                         </q-item-tile>
-                        <q-item-tile sublabel>{{new Date(tx.timestamp * 1000)}}
-                            <!-- <timeago :datetime="tx.timestamp" :auto-update="60">
-                            </timeago> -->
+                        <q-item-tile sublabel>
+                            <timeago :datetime="(tx.timestamp*1000)" :auto-update="60">
+                            </timeago>
                         </q-item-tile>
                     </q-item-side>
 

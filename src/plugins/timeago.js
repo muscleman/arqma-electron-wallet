@@ -1,4 +1,4 @@
-import VueTimeago from "persian-vue-timeago"
+import VueTimeago from "vue-timeago"
 export default ({
     app,
     router,
