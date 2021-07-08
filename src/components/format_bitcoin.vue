@@ -1,6 +1,7 @@
 <template>
     <span>
-        <q-item-tile icon-left="more_vert" label>{{display(market.default)}}<span class="label fg-primary text-green">...</span></q-item-tile>
+        <q-item-tile icon-left="more_vert" label>{{display(market.default)}}<span class="label fg-primary text-green">...</span>
+        </q-item-tile>
             <q-popover anchor="bottom right" self="top right">
                 <q-list separator link>
                     <q-item v-for="(exchange, index) in market.exchanges" :key="exchange.key"
@@ -11,7 +12,7 @@
                     </q-item>
                 </q-list>
             </q-popover>
-        </q-btn>
+        <q-btn></q-btn>
     </span>
 </template>
 
